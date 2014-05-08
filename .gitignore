@@ -1,0 +1,14 @@
+.gitignore
+*.user
+*.suo
+*.sdf
+*.obj
+*.exe
+*.aps
+*.idb
+*.opensdf
+ipch
+language.dat
+Release
+Debug
+Gens.cfg
