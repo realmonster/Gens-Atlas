@@ -83,7 +83,7 @@
     </ResourceCompile>
     <Link>
       <AdditionalOptions>/NODEFAULTLIB:MSVCR80.dll%3bcinitexe.obj%3b /LTCG %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalDependencies>advapi32.lib;ComDlg32.Lib;gdi32.lib;user32.lib;libcmt.lib;wsock32.lib;shell32.lib;oleaut32.lib;dependencies/directx/ddraw.lib;dependencies/directx/dsound.lib;dependencies/directx/dinput.lib;dependencies/directx/dxguid.lib;winmm.lib;dependencies/libs/zlib.lib;dependencies/libs/libpng.lib;htmlhelp.lib;vfw32.lib;dependencies/libs/lua51.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>advapi32.lib;ComDlg32.Lib;gdi32.lib;user32.lib;libcmt.lib;wsock32.lib;shell32.lib;oleaut32.lib;dependencies/directx/ddraw.lib;dependencies/directx/dsound.lib;dependencies/directx/dinput.lib;dependencies/directx/dxguid.lib;winmm.lib;dependencies/libs/zlib.lib;dependencies/libs/libpng.lib;htmlhelp.lib;vfw32.lib;dependencies/libs/lua51.lib;opengl32.lib;glew32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(TargetDir)gens.exe</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
@@ -139,7 +139,7 @@
     </ResourceCompile>
     <Link>
       <AdditionalOptions>/NODEFAULTLIB:MSVCR80.dll%3bcinitexe.obj%3b %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalDependencies>advapi32.lib;ComDlg32.Lib;gdi32.lib;user32.lib;libcmtd.lib;wsock32.lib;shell32.lib;oleaut32.lib;dependencies/directx/ddraw.lib;dependencies/directx/dsound.lib;dependencies/directx/dinput.lib;dependencies/directx/dxguid.lib;winmm.lib;dependencies/libs/zlib.lib;dependencies/libs/libpng.lib;htmlhelp.lib;vfw32.lib;dependencies/libs/lua51.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>advapi32.lib;ComDlg32.Lib;gdi32.lib;user32.lib;libcmtd.lib;wsock32.lib;shell32.lib;oleaut32.lib;dependencies/directx/ddraw.lib;dependencies/directx/dsound.lib;dependencies/directx/dinput.lib;dependencies/directx/dxguid.lib;winmm.lib;dependencies/libs/zlib.lib;dependencies/libs/libpng.lib;htmlhelp.lib;vfw32.lib;dependencies/libs/lua51.lib;opengl32.lib;glew32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>.\Debug/gens.exe</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
