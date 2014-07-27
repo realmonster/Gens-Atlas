@@ -26,16 +26,255 @@
 #include <gl/glew.h>
 #include <gl/wglew.h>
 
+#include <vector>
+
+HWND ShaderLogHwnd;
 HGLRC GLRC;
 GLuint glScreenTexture;
 
-LPDIRECTDRAW lpDD_Init;
-LPDIRECTDRAW4 lpDD;
-LPDIRECTDRAWSURFACE4 lpDDS_Primary;
-LPDIRECTDRAWSURFACE4 lpDDS_Flip;
-LPDIRECTDRAWSURFACE4 lpDDS_Back;
-LPDIRECTDRAWSURFACE4 lpDDS_Blit;
-LPDIRECTDRAWCLIPPER lpDDC_Clipper;
+GLuint MainShader;
+GLuint SpriteShader;
+
+GLuint myArrayUBO;
+GLuint RomTexture;
+GLuint RomBuffer;
+GLuint PalTexture;
+GLuint PalBuffer;
+GLuint VRAMTexture;
+GLuint VRAMBuffer;
+GLuint RAMTexture;
+GLuint RAMBuffer; 
+
+GLint CompileShader(GLuint shader, LPCSTR path)
+{
+	FILE *f = fopen(path, "rb");
+	if (!f)
+		return GL_FALSE;
+
+	fseek(f,0,SEEK_END);
+	GLint len = ftell(f);
+	fseek(f,0,SEEK_SET);
+
+	GLchar *data = (GLchar*)malloc(len);
+	if (!data)
+	{
+		fclose(f);
+		return GL_FALSE;
+	}
+
+	int readed = fread(data, 1, len, f);
+	fclose(f);
+	if (readed != len)
+	{
+		free(data);
+		return GL_FALSE;
+	}
+
+	GLchar* strings[1];
+	strings[0] = data;
+	glShaderSource(shader, 1, (const GLchar**)strings, &len);
+	free(data);
+
+	glCompileShader(shader);
+
+	GLint success = 0;
+	glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
+	return success;
+}
+
+std::vector<GLchar> GetShaderLog(GLuint shader)
+{
+	GLint logSize = 0;
+	glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &logSize);
+
+	std::vector<GLchar> infoLog;
+	infoLog.resize(logSize);
+
+	GLsizei len;
+	glGetShaderInfoLog(shader, logSize, &len, infoLog.data());
+
+	return infoLog;
+}
+
+GLint CompileProgram(GLuint program, GLuint vertex, GLuint fragment)
+{
+	glAttachShader(program, vertex);
+	glAttachShader(program, fragment);
+
+	glLinkProgram(program);
+
+	GLint success = 0;
+	glGetProgramiv(program, GL_LINK_STATUS, &success);
+
+	return success;
+}
+
+std::vector<GLchar> GetProgramLog(GLuint shader)
+{
+	GLint logSize = 0;
+	glGetProgramiv(shader, GL_INFO_LOG_LENGTH, &logSize);
+
+	std::vector<GLchar> infoLog;
+	infoLog.resize(logSize);
+
+	GLsizei len = 0;
+	glGetProgramInfoLog(shader, logSize, &len, infoLog.data());
+
+	return infoLog;
+}
+
+void FilterShaderLog(std::vector<GLchar> *log)
+{
+	if (!log)
+		return;
+	for (size_t i=0; i<log->size(); ++i)
+	{
+		if ((*log)[i] == 0)
+		{
+			log->erase((*log).begin()+i);
+			--i;
+		}
+		if ((*log)[i] == '\n' && (!i || (*log)[i-1] != '\r'))
+		{
+			log->insert((*log).begin()+i, '\r');
+			++i;
+		}
+	}
+}
+
+GLuint MakeProgram(LPCSTR vert_path, LPCSTR frag_path, std::vector<GLchar> *log)
+{
+	GLuint vertex = glCreateShader(GL_VERTEX_SHADER);
+	GLint res = CompileShader(vertex, vert_path);
+	if (log)
+	{
+		std::vector<GLchar> l = GetShaderLog(vertex);
+		log->insert(log->end(),l.begin(),l.end());
+	}
+	if (res == GL_FALSE)
+	{
+		glDeleteShader(vertex);
+		FilterShaderLog(log);
+		return res;
+	}
+
+	GLuint fragment = glCreateShader(GL_FRAGMENT_SHADER);
+	res = CompileShader(fragment, frag_path);
+	if (log)
+	{
+		log->push_back('\n');
+		std::vector<GLchar> l = GetShaderLog(fragment);
+		log->insert(log->end(),l.begin(),l.end());
+	}
+	if (res == GL_FALSE)
+	{
+		glDeleteShader(vertex);
+		glDeleteShader(fragment);
+		FilterShaderLog(log);
+		return res;
+	}
+
+	GLuint program = glCreateProgram();
+	res = CompileProgram(program, vertex, fragment);
+	if (log)
+	{
+		log->push_back('\n');
+		std::vector<GLchar> l = GetProgramLog(program);
+		log->insert(log->end(),l.begin(),l.end());
+
+		FilterShaderLog(log);
+	}
+
+	glDetachShader(program, vertex);
+	glDetachShader(program, fragment);
+
+	glDeleteShader(vertex);
+	glDeleteShader(fragment);
+
+	return program;
+}
+
+void InitTextures()
+{
+	glGenBuffers (1, &RomBuffer);
+	glGenTextures(1, &RomTexture);
+	glGenBuffers (1, &PalBuffer);
+	glGenTextures(1, &PalTexture);
+	glGenBuffers (1, &VRAMBuffer);
+	glGenTextures(1, &VRAMTexture);
+	glGenBuffers (1, &RAMBuffer);
+	glGenTextures(1, &RAMTexture);
+}
+
+int Update_Rom_Buffer()
+{
+	glBindBuffer (GL_TEXTURE_BUFFER, RomBuffer);
+	glBufferData (GL_TEXTURE_BUFFER, 0x400000, Rom_Data, GL_STATIC_DRAW);
+	return 0;
+}
+
+void UpdateTextures()
+{
+	glBindTexture(GL_TEXTURE_BUFFER, RomTexture);
+	glTexBuffer (GL_TEXTURE_BUFFER, GL_R8UI, RomBuffer);
+
+	glBindBuffer (GL_TEXTURE_BUFFER, PalBuffer);
+	glBufferData (GL_TEXTURE_BUFFER, 0x80, CRam, GL_STATIC_DRAW);
+
+	glBindTexture(GL_TEXTURE_BUFFER, PalTexture);
+	glTexBuffer (GL_TEXTURE_BUFFER, GL_R8UI, PalBuffer);
+
+	glBindBuffer (GL_TEXTURE_BUFFER, VRAMBuffer);
+	glBufferData (GL_TEXTURE_BUFFER, 0x10000, VRam, GL_STATIC_DRAW);
+
+	glBindTexture(GL_TEXTURE_BUFFER, VRAMTexture);
+	glTexBuffer (GL_TEXTURE_BUFFER, GL_R8UI, VRAMBuffer);
+
+	glBindBuffer (GL_TEXTURE_BUFFER, RAMBuffer);
+	glBufferData (GL_TEXTURE_BUFFER, 0x10000, Ram_68k, GL_STATIC_DRAW);
+
+	glBindTexture(GL_TEXTURE_BUFFER, RAMTexture);
+	glTexBuffer (GL_TEXTURE_BUFFER, GL_R8UI, RAMBuffer);
+}
+
+void DelTextures()
+{
+	glBindTexture(GL_TEXTURE_BUFFER, RomTexture);
+	glTexBuffer (GL_TEXTURE_BUFFER, GL_R8UI, 0);
+
+	glDeleteTextures(1, &RomTexture);
+	glDeleteBuffers(1, &RomBuffer);
+	
+	glBindTexture(GL_TEXTURE_BUFFER, PalTexture);
+	glTexBuffer (GL_TEXTURE_BUFFER, GL_R8UI, 0);
+
+	glDeleteTextures(1, &PalTexture);
+	glDeleteBuffers(1, &PalBuffer);
+	
+	glBindTexture(GL_TEXTURE_BUFFER, VRAMTexture);
+	glTexBuffer (GL_TEXTURE_BUFFER, GL_R8UI, 0);
+
+	glDeleteTextures(1, &VRAMTexture);
+	glDeleteBuffers(1, &VRAMBuffer);
+	
+	glBindTexture(GL_TEXTURE_BUFFER, RAMTexture);
+	glTexBuffer (GL_TEXTURE_BUFFER, GL_R8UI, 0);
+
+	glDeleteTextures(1, &RAMTexture);
+	glDeleteBuffers(1, &RAMBuffer);
+}
+
+int GetLong(void *ptr)
+{
+	unsigned char* d = (unsigned char*)ptr;
+	return (d[1]<<24)|(d[0]<<16)|(d[3]<<8)|(d[2]);
+}
+
+int GetWord(void *ptr)
+{
+	unsigned char* d = (unsigned char*)ptr;
+	return (d[1]<<8)|(d[0]);
+} 
 
 clock_t Last_Time = 0, New_Time = 0;
 clock_t Used_Time = 0;
@@ -315,7 +554,26 @@ int Init_DDraw(HWND hWnd)
 	{
 		return Init_Fail(hWnd, "Error can't create OpenGL context!");
 	}
+	HWND staticw = CreateWindowEx(NULL, "EDIT", "",
+		 WS_OVERLAPPEDWINDOW | WS_THICKFRAME | WS_VISIBLE,
+		0,0,500,500,
+		NULL,
+		NULL,
+		NULL, NULL);
+	ShaderLogHwnd = CreateWindowEx(NULL, "EDIT", "",
+		WS_CHILD | WS_VISIBLE | ES_MULTILINE | ES_AUTOHSCROLL | ES_AUTOVSCROLL | WS_HSCROLL | WS_VSCROLL | WS_THICKFRAME,
+		0,0,500,500,
+		staticw,
+		NULL,
+		NULL, NULL); 
 	glGenTextures(1, &glScreenTexture);
+	std::vector<GLchar> log;
+	std::vector<GLchar> log1;
+	MainShader = MakeProgram("vert.glsl", "frag.glsl", &log);
+	SpriteShader = MakeProgram("vert.glsl", "sprite.glsl", &log1);
+	log.insert(log.end(), log1.begin(), log1.end());
+	SetWindowText(ShaderLogHwnd, log.data());
+	InitTextures();
 	ReleaseDC(hWnd, dc);
 
 	if (Res_X < (320 << (int) (Render_FS > 0))) Res_X = 320 << (int) (Render_FS > 0); //Upth-Add - Set a floor for the resolution
@@ -876,7 +1134,9 @@ int Flip(HWND hWnd)
 	if(!GLRC)
 		return 0; // bail if directdraw hasn't been initialized yet or if we're still in the middle of initializing it
 
-	HRESULT rval = DD_OK;
+	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+
+	HRESULT rval = 1;
 	RECT RectDest, RectSrc;
 	int bpp = Bits32 ? 4 : 2; // Modif N. -- added: bytes per pixel
 
@@ -915,17 +1175,16 @@ int Flip(HWND hWnd)
 	}
 
 	Flag_Clr_Scr &= 0x1FF; // remove "already cleared"
-	
-	glBindTexture(GL_TEXTURE_2D, glScreenTexture);
+
 	for (int y=0; y<224; ++y)
 	{
 		for (int x=0; x<320; ++x)
 		{
 			unsigned int c = MD_Screen32[TAB336[y] + 8+x];
 			GLbyte * d= &BlitData[(y*320+x)*3];
-			*(d++) = c>>16;
-			*(d++) = c>>8;
-			*(d++) = c;
+			*(d++) = (GLbyte)((c>>16)&0xFF);
+			*(d++) = (GLbyte)((c>>8)&0xFF);
+			*(d++) = (GLbyte)((c)&0xFF);
 		}
 	}
 	glBindTexture(GL_TEXTURE_2D, glScreenTexture);
@@ -943,22 +1202,237 @@ int Flip(HWND hWnd)
 	glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP );
 	glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP );
 
+	UpdateTextures();
+
+	glViewport(0, 0, RectDest.right-RectDest.left, RectDest.bottom-RectDest.top);
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	glTranslated(-1.0, 1.0, 1.0);
+	glScaled(2.0/(RectDest.right-RectDest.left), -2.0/(RectDest.bottom-RectDest.top), 1.0);		
+
+	glTranslated((RectDest.right-RectDest.left-(RectSrc.right-RectSrc.left))/2,
+		(RectDest.bottom-RectDest.top-(RectSrc.bottom-RectSrc.top))/2, 0.0);
+
 	glEnable(GL_TEXTURE_2D);
 	//glActiveTexture(GL_TEXTURE0);
-	glBegin(GL_TRIANGLES);
-	glTexCoord3f(0.0f, 0.0f, 0.0f);
-	glVertex2i(-1,  1);
-	glTexCoord3f(0.0f, 1.0f, 0.0f);
-	glVertex2i(-1, -1);
-	glTexCoord3f(1.0f, 1.0f, 0.0f);
-	glVertex2i(1, -1);
 
+	glUseProgram(MainShader);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	GLint res = glGetUniformLocation(MainShader, "ROM");
+	if (res != -1)
+	{
+		glUniform1i(res, 0); //Texture unit 0 is for base images.
+	}
+	res = glGetUniformLocation(MainShader, "PAL");
+	if (res != -1)
+	{
+		glUniform1i(res, 1); //Texture unit 0 is for base images.
+	}
+	res = glGetUniformLocation(MainShader, "VRAM");
+	if (res != -1)
+	{
+		glUniform1i(res, 2); //Texture unit 0 is for base images.
+	}
+	res = glGetUniformLocation(MainShader, "RAM");
+	if (res != -1)
+	{
+		glUniform1i(res, 3); //Texture unit 0 is for base images.
+	}
+
+	glActiveTexture(GL_TEXTURE0 + 0);
+	glBindTexture(GL_TEXTURE_BUFFER, RomTexture);
+	glActiveTexture(GL_TEXTURE0 + 1);
+	glBindTexture(GL_TEXTURE_BUFFER, PalTexture);
+	glActiveTexture(GL_TEXTURE0 + 2);
+	glBindTexture(GL_TEXTURE_BUFFER, VRAMTexture);
+	glActiveTexture(GL_TEXTURE0 + 3);
+	glBindTexture(GL_TEXTURE_BUFFER, RAMTexture);
+
+	int w = RectDest.right-RectDest.left;
+	int h = RectDest.bottom-RectDest.top;
+	glBegin(GL_TRIANGLES);
+	glColor3f(-20000.0f, -20000.0f, 0.0f);
+	glVertex2i(-20000,  -20000);
+	glColor3f(-20000.0f, 20000.0f, 0.0f);
+	glVertex2i(-20000, 20000);
+	glColor3f(20000, 20000.0f, 0.0f);
+	glVertex2i(20000, 20000);
+
+	glColor3f(-20000.0f, -20000.0f, 0.0f);
+	glVertex2i(-20000,  -20000);
+	glColor3f(20000.0f, 20000.0f, 0.0f);
+	glVertex2i(20000, 20000);
+	glColor3f(20000.0f, -20000.0f, 0.0f);
+	glVertex2i(20000, -20000);
+	glEnd();
+
+	glUseProgram(0);
+
+	int ring_current = GetLong(&Ram_68k[0xEE42]);
+	int ring_start = 0;
+	int ring_end = 0;
+	for (int i=ring_current; i>=0 && i > ring_current-4000; i-=4)
+		if (GetLong(&Rom_Data[i]) == 0)
+		{
+			ring_start = i;
+			break;
+		}
+
+	for (int i=ring_current; i<sizeof(Rom_Data) && i < ring_current+4000; i+=4)
+		if (Rom_Data[(i)^1] == 0xFF
+		 && Rom_Data[(i+1)^1] == 0xFF)
+		 {
+			ring_end = i;
+			break;
+		 }
+
+	if (ring_start && ring_end
+	&& ring_end - ring_start < 512*4)
+	{
+		int camerax = GetWord(&Ram_68k[0xEE78]);
+		int cameray = GetWord(&Ram_68k[0xEE7C]);
+
+		glUseProgram(SpriteShader);
+		GLint res = glGetUniformLocation(SpriteShader, "sprite_entry");
+		if (res != -1)
+		{
+			switch (Ram_68k[0xFEB3^1])
+			{
+				case 0:
+					glUniform1i(res, (0x26BC+0)|(0x50000));
+					break;
+				case 1:
+					glUniform1i(res, (0x26BC+4)|(0x50000));
+					break;
+				case 2:
+					glUniform1i(res, (0x26BC+8)|(0x10000));
+					break;
+				case 3:
+					glUniform1i(res, (0x26BC+4)|(0x50800));
+					break;
+			}
+		}
+		res = glGetUniformLocation(SpriteShader, "PAL");
+		if (res != -1)
+		{
+			glUniform1i(res, 1); //Texture unit 0 is for base images.
+		}
+		res = glGetUniformLocation(SpriteShader, "VRAM");
+		if (res != -1)
+		{
+			glUniform1i(res, 2); //Texture unit 0 is for base images.
+		}
+		
+
+		glBegin(GL_TRIANGLES);
+		for (int i=0; ring_start+i<ring_end; i+=4)
+		{
+			if (GetWord(&Ram_68k[0xE700+(i>>1)]) != 0)
+				continue;
+			float rx = GetWord(&Rom_Data[ring_start+i]) - camerax;
+			float ry = GetWord(&Rom_Data[ring_start+i+2]) - cameray;
+			float rw = 8;
+			if (Ram_68k[0xFEB3^1] ==  2)
+				rw = 4;
+			float rh = 8;
+			//if (rx < 0 || rx > w)
+			//	continue;
+			//if (ry < 0 || ry > h)
+			//	continue;
+
+			glColor3f(0.0f, 0.0f, 0.0f);
+			glVertex2f(rx-rw, ry-rh);
+			glColor3f(0.0f, 16.0f, 0.0f);
+			glVertex2f(rx-rw, ry+rh);
+			glColor3f(rw*2, 16.0f, 0.0f);
+			glVertex2f(rx+rw, ry+rh);
+
+			glColor3f(0.0f, 0.0f, 0.0f);
+			glVertex2f(rx-rw, ry-rh);
+			glColor3f(rw*2, 16.0f, 0.0f);
+			glVertex2f(rx+rw, ry+rh);
+			glColor3f(rw*2, 0.0f, 0.0f);
+			glVertex2f(rx+rw, ry-rh);
+		}
+		glEnd();
+
+		glUseProgram(0);
+
+		glUseProgram(SpriteShader);
+		int link = 0;
+		for (int i=0; i<80; ++i)
+		{
+			int so = 0xF800+link*8;
+			int size = VRam[(so+2)^1];
+			GLint res = glGetUniformLocation(SpriteShader, "sprite_entry");
+			if (res != -1)
+			{
+				glUniform1i(res, GetWord(&VRam[so+4])|((size&0xF)<<16)); //Texture unit 0 is for base images.
+			}
+
+			int yy = GetWord(&VRam[so]);
+			if (yy == 0)
+				continue;
+			int xx = GetWord(&VRam[so+6]);
+			if (xx == 0)
+				continue;
+			float y = yy-0x80;
+			float x = xx-0x80;
+			float sw = (((size>>2)&3)+1)*8;
+			float sh = (((size)&3)+1)*8;
+
+			glBegin(GL_TRIANGLES);
+
+			glColor3f (0.0f, 0.0f, 0.0f);
+			glVertex2f(x   , y   );
+			glColor3f (0.0f,   sh, 0.0f);
+			glVertex2f(x   , y+sh);
+			glColor3f (  sw,   sh, 0.0f);
+			glVertex2f(x+sw, y+sh);
+
+			glColor3f (0.0f, 0.0f, 0.0f);
+			glVertex2f(x   , y   );
+			glColor3f (  sw,   sh, 0.0f);
+			glVertex2f(x+sw, y+sh);
+			glColor3f (  sw, 0.0f, 0.0f);
+			glVertex2f(x+sw, y   );
+
+			glEnd();
+			link = VRam[(so+3)^1];
+			if (link == 0)
+				break;
+		}
+		glUseProgram(0);
+	}
+
+	glActiveTexture(GL_TEXTURE0 + 1);
+	glBindTexture(GL_TEXTURE_BUFFER, 0);
+	glActiveTexture(GL_TEXTURE0 + 2);
+	glBindTexture(GL_TEXTURE_BUFFER, 0);
+	glActiveTexture(GL_TEXTURE0 + 3);
+	glBindTexture(GL_TEXTURE_BUFFER, 0);
+	glActiveTexture(GL_TEXTURE0 + 0);
+	glBindTexture(GL_TEXTURE_BUFFER, 0);
+	
+	glColor3f(1.0, 1.0, 1.0f);
+	glBindTexture(GL_TEXTURE_2D, glScreenTexture);
+
+	glBegin(GL_TRIANGLES);
+	glTexCoord3f(0.0f, 1.0f, 0.0f);
+	glVertex2i(0, 224);
 	glTexCoord3f(0.0f, 0.0f, 0.0f);
-	glVertex2i(-1,  1);
-	glTexCoord3f(1.0f, 1.0f, 0.0f);
-	glVertex2i(1, -1);
+	glVertex2i(0, 0);
 	glTexCoord3f(1.0f, 0.0f, 0.0f);
-	glVertex2i(1, 1);
+	glVertex2i(320, 0);
+
+	glTexCoord3f(0.0f, 1.0f, 0.0f);
+	glVertex2i(0,  224);
+	glTexCoord3f(1.0f, 0.0f, 0.0f);
+	glVertex2i(320, 0);
+	glTexCoord3f(1.0f, 1.0f, 0.0f);
+	glVertex2i(320, 224);
 	glEnd();
 	
 	HDC dc = GetDC(hWnd);

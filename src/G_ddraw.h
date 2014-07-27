@@ -3,7 +3,8 @@
 
 #define DIRECTDRAW_VERSION         0x0500
 
-#include <ddraw.h>
+//#include <ddraw.h>
+#include <Windows.h>
 #include <time.h>
 #include "Mem_M68k.h"
 
@@ -46,6 +47,7 @@ extern void (*Blit_W)(unsigned char *Dest, int pitch, int x, int y, int offset);
 extern int (*Update_Frame)();
 extern int (*Update_Frame_Fast)();
 
+int Update_Rom_Buffer();
 int Init_Fail(HWND hwnd);
 int Init_DDraw(HWND hWnd);
 int Clear_Primary_Screen(HWND hWnd);
