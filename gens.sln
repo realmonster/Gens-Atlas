@@ -8,6 +8,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SubStar", "Starscream\Sub68
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lib7zip", "7z\7zip.vcxproj", "{5646C572-A578-49F8-9DA9-3E00A8CBFE3F}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Sonic3-Atlas", "Sonic3-Atlas\Sonic3-Atlas.vcxproj", "{074338A5-7E5B-46E8-B074-7C3FFB274711}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -30,6 +32,10 @@ Global
 		{5646C572-A578-49F8-9DA9-3E00A8CBFE3F}.Debug|Win32.Build.0 = Debug|Win32
 		{5646C572-A578-49F8-9DA9-3E00A8CBFE3F}.Release|Win32.ActiveCfg = Release|Win32
 		{5646C572-A578-49F8-9DA9-3E00A8CBFE3F}.Release|Win32.Build.0 = Release|Win32
+		{074338A5-7E5B-46E8-B074-7C3FFB274711}.Debug|Win32.ActiveCfg = Debug|Win32
+		{074338A5-7E5B-46E8-B074-7C3FFB274711}.Debug|Win32.Build.0 = Debug|Win32
+		{074338A5-7E5B-46E8-B074-7C3FFB274711}.Release|Win32.ActiveCfg = Release|Win32
+		{074338A5-7E5B-46E8-B074-7C3FFB274711}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -31,6 +31,8 @@ extern unsigned char CleanAvi;
 extern bool frameadvSkipLag;
 extern bool justlagged;
 
+extern char Genesis_Render_Plugin[1024];
+
 #define ALT_X_RATIO_RES (Correct_256_Aspect_Ratio ? 320 : 256)
 
 #define VDP_REG_SET2 (FakeVDPScreen ? VDP_Reg.Set2 : VDP_Reg_Set2_Current)
@@ -47,9 +49,10 @@ extern void (*Blit_W)(unsigned char *Dest, int pitch, int x, int y, int offset);
 extern int (*Update_Frame)();
 extern int (*Update_Frame_Fast)();
 
-int Update_Rom_Buffer();
-int Init_Fail(HWND hwnd);
-int Init_DDraw(HWND hWnd);
+void Render_ROM_Loaded();
+int Render_Init(HWND hWnd);
+void Render_Delete(void);
+void Render_Reload(HWND hWnd);
 int Clear_Primary_Screen(HWND hWnd);
 int Clear_Back_Screen(HWND hWnd);
 int Update_Gens_Logo(HWND hWnd);
@@ -68,7 +71,6 @@ int Take_Shot();
 int Take_Shot_Clipboard();
 int Take_Shot_AVI(HWND hWnd);
 int Take_Shot(int WriteToAVI, HWND hWnd);
-void End_DDraw(void);
 int Update_Frame_Adjusted();
 
 //void MP3_update_test();

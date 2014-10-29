@@ -7,8 +7,7 @@
 //
 // Generated from the TEXTINCLUDE 2 resource.
 //
-#include "afxres.h"
-
+#include "afxres.h"
 /////////////////////////////////////////////////////////////////////////////
 #undef APSTUDIO_READONLY_SYMBOLS
 
@@ -59,23 +58,19 @@ BEGIN
     EDITTEXT        IDC_EDIT1,190,223,64,20,ES_MULTILINE | ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
 END
 
-IDD_VDP_SPRITES DIALOG DISCARDABLE  0, 0, 237, 253
-STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_VISIBLE
+IDD_VDP_SPRITES DIALOG 0, 0, 237, 253
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
 CAPTION "VDP Sprites"
 FONT 8, "MS Sans Serif"
 BEGIN
-    LTEXT           "Num    Ypos       XPos             Size      Link   Pal         Tile       Flags*",
-                    IDC_STATIC,7,7,223,8
-    LISTBOX         IDC_SPRITES_LIST,7,21,223,147,LBS_USETABSTOPS | 
-                    LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_HSCROLL
-    CONTROL         "spriteVDP",IDC_SPRITES_PREVIEW,"Static",SS_OWNERDRAW,7,
-                    185,67,61
-    LTEXT           "* Priority / VFlip / HFlip",IDC_STATIC,7,170,72,8,NOT 
-                    WS_GROUP
+    LTEXT           "Num    Ypos       XPos             Size      Link   Pal         Tile       Flags*",IDC_STATIC,7,7,223,8
+    LISTBOX         IDC_SPRITES_LIST,7,21,223,147,LBS_USETABSTOPS | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_HSCROLL
+    CONTROL         "spriteVDP",IDC_SPRITES_PREVIEW,"Static",SS_OWNERDRAW,7,185,67,61
+    LTEXT           "* Priority / VFlip / HFlip",IDC_STATIC,7,170,72,8,NOT WS_GROUP
     PUSHBUTTON      "Dump",IDC_SPRITES_DUMP,167,207,50,14
-    CONTROL         "spriteVDP",IDC_SPRITES_PREVIEW2,"Static",SS_OWNERDRAW,
-                    89,185,67,61
+    CONTROL         "spriteVDP",IDC_SPRITES_PREVIEW2,"Static",SS_OWNERDRAW,89,185,67,61
 END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -364,7 +359,7 @@ BEGIN
 END
 
 IDD_GAMEGENIE DIALOGEX 0, 0, 299, 210
-STYLE DS_SETFONT | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME | WS_MINIMIZEBOX
+STYLE DS_SETFONT | WS_MINIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
 CAPTION "Game Genie / Patch"
 FONT 8, "MS Sans Serif", 0, 0, 0x0
 BEGIN
@@ -386,45 +381,49 @@ BEGIN
     PUSHBUTTON      "&De-active all codes",ID_GGDEACTIVATE,242,133,50,21,BS_MULTILINE
 END
 
-IDD_FILES DIALOGEX 0, 0, 285, 249
+IDD_FILES DIALOGEX 0, 0, 285, 278
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Files configuration"
 FONT 8, "MS Sans Serif", 0, 0, 0x0
 BEGIN
-    PUSHBUTTON      "&OK",ID_OK,223,231,50,14
-    PUSHBUTTON      "&Cancel",ID_CANCEL,164,231,50,14
-    EDITTEXT        IDC_EDIT_USBIOS,63,122,151,12,ES_AUTOHSCROLL
-    LTEXT           "USA",IDC_STATIC_USBIOS,13,124,45,9
-    EDITTEXT        IDC_EDIT_EUBIOS,63,140,151,12,ES_AUTOHSCROLL
-    LTEXT           "Europe",IDC_STATIC_EUBIOS,13,142,45,9
-    EDITTEXT        IDC_EDIT_JABIOS,63,158,151,12,ES_AUTOHSCROLL
-    LTEXT           "Japan",IDC_STATIC_JABIOS,13,160,45,9
-    PUSHBUTTON      "Change",ID_CHANGE_USBIOS,223,122,50,14
-    PUSHBUTTON      "Change",ID_CHANGE_EUBIOS,223,139,50,14
-    PUSHBUTTON      "Change",ID_CHANGE_JABIOS,223,157,50,14
-    GROUPBOX        "Configure SEGA CD bios files",IDC_CDBIOS_FILES,7,111,266,64
-    GROUPBOX        "Configure misc files",IDC_MISC_FILES,7,180,266,45
-    EDITTEXT        IDC_EDIT_CGOFFLINE,63,189,151,12,ES_AUTOHSCROLL
-    LTEXT           "GC Offline",IDC_STATIC_CGOFFLINE,13,191,45,9
-    PUSHBUTTON      "Change",ID_CHANGE_CGOFFLINE,223,189,50,14
-    EDITTEXT        IDC_EDIT_MANUAL,63,208,151,12,ES_AUTOHSCROLL
-    LTEXT           "Manual",IDC_STATIC_MANUAL,13,209,46,9
-    PUSHBUTTON      "Change",ID_CHANGE_MANUAL,223,207,50,14
-    PUSHBUTTON      "&Help",ID_HELP_HELP,7,231,50,14
-    EDITTEXT        IDC_EDIT_32XGBIOS,63,52,151,12,ES_AUTOHSCROLL
-    LTEXT           "M68000",IDC_STATIC_32XGBIOS,13,54,45,9
-    EDITTEXT        IDC_EDIT_32XMBIOS,63,70,151,12,ES_AUTOHSCROLL
-    LTEXT           "Master SH2",IDC_STATIC_32XMBIOS,13,73,45,9
-    EDITTEXT        IDC_EDIT_32XSBIOS,63,89,151,12,ES_AUTOHSCROLL
-    LTEXT           "Slave SH2",IDC_STATIC_32XSBIOS,13,90,45,9
-    PUSHBUTTON      "Change",ID_CHANGE_32XGBIOS,223,52,50,14
-    PUSHBUTTON      "Change",ID_CHANGE_32XMBIOS,223,70,50,14
-    PUSHBUTTON      "Change",ID_CHANGE_32XSBIOS,223,87,50,14
-    GROUPBOX        "Configure 32X bios files",IDC_32XBIOS_FILES,7,41,266,64
-    EDITTEXT        IDC_EDIT_GENESISBIOS,63,18,151,12,ES_AUTOHSCROLL
-    LTEXT           "Genesis",IDC_STATIC_GENESISBIOS,13,20,45,9
-    PUSHBUTTON      "Change",ID_CHANGE_GENESISBIOS,223,18,50,14
-    GROUPBOX        "Configure Genesis bios file",IDC_GENESISBIOS_FILE,7,7,266,28
+    PUSHBUTTON      "&OK",ID_OK,223,260,50,14
+    PUSHBUTTON      "&Cancel",ID_CANCEL,164,260,50,14
+    EDITTEXT        IDC_EDIT_USBIOS,63,157,151,12,ES_AUTOHSCROLL
+    LTEXT           "USA",IDC_STATIC_USBIOS,13,159,45,9
+    EDITTEXT        IDC_EDIT_EUBIOS,63,175,151,12,ES_AUTOHSCROLL
+    LTEXT           "Europe",IDC_STATIC_EUBIOS,13,177,45,9
+    EDITTEXT        IDC_EDIT_JABIOS,63,193,151,12,ES_AUTOHSCROLL
+    LTEXT           "Japan",IDC_STATIC_JABIOS,13,195,45,9
+    PUSHBUTTON      "Change",ID_CHANGE_USBIOS,223,157,50,14
+    PUSHBUTTON      "Change",ID_CHANGE_EUBIOS,223,174,50,14
+    PUSHBUTTON      "Change",ID_CHANGE_JABIOS,223,192,50,14
+    GROUPBOX        "Configure SEGA CD bios files",IDC_CDBIOS_FILES,7,146,266,64
+    GROUPBOX        "Configure misc files",IDC_MISC_FILES,7,215,266,45
+    EDITTEXT        IDC_EDIT_CGOFFLINE,63,224,151,12,ES_AUTOHSCROLL
+    LTEXT           "GC Offline",IDC_STATIC_CGOFFLINE,13,226,45,9
+    PUSHBUTTON      "Change",ID_CHANGE_CGOFFLINE,223,224,50,14
+    EDITTEXT        IDC_EDIT_MANUAL,63,243,151,12,ES_AUTOHSCROLL
+    LTEXT           "Manual",IDC_STATIC_MANUAL,13,244,46,9
+    PUSHBUTTON      "Change",ID_CHANGE_MANUAL,223,242,50,14
+    PUSHBUTTON      "&Help",ID_HELP_HELP,7,260,50,14
+    EDITTEXT        IDC_EDIT_32XGBIOS,63,87,151,12,ES_AUTOHSCROLL
+    LTEXT           "M68000",IDC_STATIC_32XGBIOS,13,89,45,9
+    EDITTEXT        IDC_EDIT_32XMBIOS,63,105,151,12,ES_AUTOHSCROLL
+    LTEXT           "Master SH2",IDC_STATIC_32XMBIOS,13,108,45,9
+    EDITTEXT        IDC_EDIT_32XSBIOS,63,124,151,12,ES_AUTOHSCROLL
+    LTEXT           "Slave SH2",IDC_STATIC_32XSBIOS,13,125,45,9
+    PUSHBUTTON      "Change",ID_CHANGE_32XGBIOS,223,87,50,14
+    PUSHBUTTON      "Change",ID_CHANGE_32XMBIOS,223,105,50,14
+    PUSHBUTTON      "Change",ID_CHANGE_32XSBIOS,223,122,50,14
+    GROUPBOX        "Configure 32X bios files",IDC_32XBIOS_FILES,7,76,266,64
+    EDITTEXT        IDC_EDIT_GENESISBIOS,63,53,151,12,ES_AUTOHSCROLL
+    LTEXT           "Genesis",IDC_STATIC_GENESISBIOS,13,55,45,9
+    PUSHBUTTON      "Change",ID_CHANGE_GENESISBIOS,223,53,50,14
+    GROUPBOX        "Configure Genesis bios file",IDC_GENESISBIOS_FILE,7,42,266,28
+    EDITTEXT        IDC_EDIT_RENDER,63,19,151,12,ES_AUTOHSCROLL
+    LTEXT           "Render",IDC_STATIC_RENDER,13,21,45,9
+    PUSHBUTTON      "Change",ID_CHANGE_RENDER,223,19,50,14
+    GROUPBOX        "Configure Render Plugin",IDC_RENDER_FILE,7,8,266,28
 END
 
 IDD_OPTION DIALOGEX 0, 0, 256, 360
@@ -469,9 +468,10 @@ BEGIN
     CONTROL         "Fast Blur",IDC_FASTBLUR,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,36,109,8
     CONTROL         "Show Sega-CD LED",IDC_SHOWLED,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,127,36,109,8
     PUSHBUTTON      "&Help",ID_HELP_HELP,96,334,50,14
-    CONTROL         "Disable Pause Blue Screen Effect",IDC_DISABLE_BLUE_SCREEN,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,18,215,128,10
-	LTEXT           "Scale Factor:",IDC_STATIC,143,215,78,8
-	EDITTEXT        IDC_TEXT_SCALE,190,215,50,10,ES_AUTOHSCROLL
+    CONTROL         "Disable Pause Blue Screen Effect",IDC_DISABLE_BLUE_SCREEN,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,18,215,128,10
+    LTEXT           "Scale Factor:",IDC_STATIC,143,215,78,8
+    EDITTEXT        IDC_TEXT_SCALE,190,215,50,10,ES_AUTOHSCROLL
     GROUPBOX        "Movie",IDC_STATIC,7,231,242,90
     GROUPBOX        "",IDC_STATIC,182,236,60,52
     CONTROL         "Show frame counter",IDC_FRAMECOUNTER,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,18,242,81,9
@@ -790,7 +790,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 273
         TOPMARGIN, 7
-        BOTTOMMARGIN, 245
+        BOTTOMMARGIN, 274
     END
 
     IDD_OPTION, DIALOG
@@ -877,26 +877,26 @@ END
 
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
-IDI_GENS                ICON                    "resource\\Gens2.ico"
-IDI_SONIC               ICON                    "resource\\sonic.ico"
-IDI_LUA                 ICON                    "resource\\lua.ico"
+IDI_GENS                ICON                    "..\\resource\\Gens2.ico"
+IDI_SONIC               ICON                    "..\\resource\\sonic.ico"
+IDI_LUA                 ICON                    "..\\resource\\lua.ico"
 
 /////////////////////////////////////////////////////////////////////////////
 //
 // Bitmap
 //
 
-IDB_RECT_BLANC          BITMAP                  "resource\\bitmap1.bmp"
-IDB_RECT_BLEU           BITMAP                  "resource\\bmp00000.bmp"
-IDB_RECT_ROUGE          BITMAP                  "resource\\bmp00002.bmp"
-IDB_RECT_VERT           BITMAP                  "resource\\bmp00001.bmp"
-IDB_RECT_NOIR           BITMAP                  "resource\\bmp00003.bmp"
-IDB_RECT_CYAN           BITMAP                  "resource\\bmp00004.bmp"
-IDB_RECT_VIOLET         BITMAP                  "resource\\bmp00005.bmp"
-IDB_RECT_JAUNE          BITMAP                  "resource\\bmp00006.bmp"
-IDB_LOGO_SM             BITMAP                  "resource\\gens_small.bmp"
-IDB_LOGO_BIG            BITMAP                  "resource\\gens_big.bmp"
-IDB_WARNING             BITMAP                  "resource\\bmp00007.bmp"
+IDB_RECT_BLANC          BITMAP                  "..\\resource\\bitmap1.bmp"
+IDB_RECT_BLEU           BITMAP                  "..\\resource\\bmp00000.bmp"
+IDB_RECT_ROUGE          BITMAP                  "..\\resource\\bmp00002.bmp"
+IDB_RECT_VERT           BITMAP                  "..\\resource\\bmp00001.bmp"
+IDB_RECT_NOIR           BITMAP                  "..\\resource\\bmp00003.bmp"
+IDB_RECT_CYAN           BITMAP                  "..\\resource\\bmp00004.bmp"
+IDB_RECT_VIOLET         BITMAP                  "..\\resource\\bmp00005.bmp"
+IDB_RECT_JAUNE          BITMAP                  "..\\resource\\bmp00006.bmp"
+IDB_LOGO_SM             BITMAP                  "..\\resource\\gens_small.bmp"
+IDB_LOGO_BIG            BITMAP                  "..\\resource\\gens_big.bmp"
+IDB_WARNING             BITMAP                  "..\\resource\\bmp00007.bmp"
 
 #ifdef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
@@ -955,21 +955,22 @@ BEGIN
     END
 END
 
-HEXEDITOR_MENU MENU 
+HEXEDITOR_MENU MENU
 BEGIN
     POPUP "&Edit"
     BEGIN
         MENUITEM "Copy &Numbers",               IDC_C_HEX_COPY_NUMS
-    	MENUITEM "Copy &Characters",            IDC_C_HEX_COPY_CHARS
+        MENUITEM "Copy &Characters",            IDC_C_HEX_COPY_CHARS
         MENUITEM "RAM &Dump",                   IDC_C_HEX_DUMP
     END
     POPUP "&View"
-    BEGIN    
+    BEGIN
         MENUITEM "&GoTo",                       IDC_C_HEX_GOTO
         MENUITEM "Show &Lines",                 IDC_C_HEX_LINES
-    	MENUITEM "Show &Text Area",             IDC_C_HEX_TEXT
-    END    
+        MENUITEM "Show &Text Area",             IDC_C_HEX_TEXT
+    END
 END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -1000,8 +1001,7 @@ END
 //
 // Generated from the TEXTINCLUDE 3 resource.
 //
-
-
+
 /////////////////////////////////////////////////////////////////////////////
 #endif    // not APSTUDIO_INVOKED
 

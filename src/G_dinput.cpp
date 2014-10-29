@@ -320,6 +320,8 @@ static InputButton s_inputButtons [] =
 	{MOD_NONE,              VK_F3,     ID_GRAPHICS_FRAMESKIP_DECREASE, 0, NULL, "Decrease Frameskip", "PrevFrameskipKey"},
 	{MOD_NONE,              VK_F4,     ID_GRAPHICS_FRAMESKIP_INCREASE, 0, NULL, "Increase Frameskip", "NextFrameskipKey"},
 
+	{MOD_NONE,              VK_NONE,   ID_GRAPHICS_RENDER_RELOAD,      0, NULL, "Render Reload", "RenderReloadKey"},
+
 	{MOD_NONE,              VK_F12,    ID_GRAPHICS_NEXT_RENDER,        0, NULL, "Next Render Mode", "NextRenderKey"},
 	{MOD_NONE,              VK_F11,    ID_GRAPHICS_PREVIOUS_RENDER,    0, NULL, "Previous Render Mode", "PrevRenderKey"},
 	{MOD_ALT,               VK_RETURN, ID_GRAPHICS_SWITCH_MODE,        0, NULL, "Fullscreen Mode On/Off", "FullscreenKey"},

@@ -154,6 +154,9 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <None Include="gens.ico" />
+    <None Include="Output\frag.glsl" />
+    <None Include="Output\sprite.glsl" />
+    <None Include="Output\vert.glsl" />
     <None Include="resource\Gens2.ico" />
     <None Include="resource\lua.ico" />
     <None Include="resource\sonic.ico" />

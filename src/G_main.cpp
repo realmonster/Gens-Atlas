@@ -345,7 +345,7 @@ int Change_VSync(HWND hWnd)
 	
 	if (Full_Screen)
 	{
-		End_DDraw();
+		Render_Delete();
 		p_vsync = &FS_VSync;
 	}
 	else p_vsync = &W_VSync;
@@ -356,7 +356,7 @@ int Change_VSync(HWND hWnd)
 	else MESSAGE_L("Vertical Sync Disabled", "Vertical Sync Disabled")
 
 	Build_Main_Menu();
-	if (Full_Screen) return Init_DDraw(HWnd);
+	if (Full_Screen) return Render_Init(HWnd);
 	else return 1;
 }
 
@@ -789,7 +789,7 @@ tryAgain:
 	{
 		if (Sound_Initialised) Clear_Sound_Buffer();
 
-		End_DDraw();
+		Render_Delete();
 
 		if (Full_Screen = Full)
 		{
@@ -819,7 +819,7 @@ tryAgain:
 		Bits32 = ((dm.dmBitsPerPel > 16) ? 1: 0);
 	
 		Build_Main_Menu();
-		const int retval = Init_DDraw(HWnd);
+		const int retval = Render_Init(HWnd);
 		if(retval == 0 && numAttempts < 2)
 		{
 			// failed to initialize, try one more time with the simplest settings before giving up
@@ -1901,7 +1901,7 @@ BOOL Init(HINSTANCE hInst, int nCmdShow)
 	if (!Init_Input(hInst, HWnd))
 	{
 		End_Sound();
-		End_DDraw();
+		Render_Delete();
 		return FALSE;
 	}
 
@@ -1945,7 +1945,7 @@ BOOL Init(HINSTANCE hInst, int nCmdShow)
 void End_All(void)
 {
 	Free_Rom(Game);
-	End_DDraw();
+	Render_Delete();
 	End_Input();
 	YM2612_End();
 	End_Sound();
@@ -3806,6 +3806,10 @@ dialogAgain: //Nitsuja added this
 
 				case ID_GRAPHICS_RENDER_2XSAI:
 					Set_Render(hWnd, Full_Screen, 10, false);
+					return 0;
+
+				case ID_GRAPHICS_RENDER_RELOAD:
+					Render_Reload(hWnd);
 					return 0;
 
 				case ID_GRAPHICS_PREVIOUS_RENDER:
@@ -6237,6 +6241,7 @@ LRESULT CALLBACK FilesProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			WORD_L(IDC_STATIC_CGOFFLINE, "CGOffline static", "", "CGOffline");
 			WORD_L(IDC_STATIC_MANUAL, "Manual static", "", "Manual");
 
+			SetDlgItemText(hDlg, IDC_EDIT_RENDER, Genesis_Render_Plugin);
 			SetDlgItemText(hDlg, IDC_EDIT_GENESISBIOS, Genesis_Bios);
 			SetDlgItemText(hDlg, IDC_EDIT_32XGBIOS, _32X_Genesis_Bios);
 			SetDlgItemText(hDlg, IDC_EDIT_32XMBIOS, _32X_Master_Bios);
@@ -6333,6 +6338,8 @@ LRESULT CALLBACK FilesProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 					break;
 
 				case ID_OK:
+					GetDlgItemText(hDlg, IDC_EDIT_RENDER, Genesis_Render_Plugin, 1024);
+
 					GetDlgItemText(hDlg, IDC_EDIT_GENESISBIOS, Genesis_Bios, 1024);
 
 					GetDlgItemText(hDlg, IDC_EDIT_32XGBIOS, _32X_Genesis_Bios, 1024);

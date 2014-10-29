@@ -23,258 +23,7 @@
 #include "drawutil.h"
 #include "luascript.h"
 
-#include <gl/glew.h>
-#include <gl/wglew.h>
-
-#include <vector>
-
-HWND ShaderLogHwnd;
-HGLRC GLRC;
-GLuint glScreenTexture;
-
-GLuint MainShader;
-GLuint SpriteShader;
-
-GLuint myArrayUBO;
-GLuint RomTexture;
-GLuint RomBuffer;
-GLuint PalTexture;
-GLuint PalBuffer;
-GLuint VRAMTexture;
-GLuint VRAMBuffer;
-GLuint RAMTexture;
-GLuint RAMBuffer; 
-
-GLint CompileShader(GLuint shader, LPCSTR path)
-{
-	FILE *f = fopen(path, "rb");
-	if (!f)
-		return GL_FALSE;
-
-	fseek(f,0,SEEK_END);
-	GLint len = ftell(f);
-	fseek(f,0,SEEK_SET);
-
-	GLchar *data = (GLchar*)malloc(len);
-	if (!data)
-	{
-		fclose(f);
-		return GL_FALSE;
-	}
-
-	int readed = fread(data, 1, len, f);
-	fclose(f);
-	if (readed != len)
-	{
-		free(data);
-		return GL_FALSE;
-	}
-
-	GLchar* strings[1];
-	strings[0] = data;
-	glShaderSource(shader, 1, (const GLchar**)strings, &len);
-	free(data);
-
-	glCompileShader(shader);
-
-	GLint success = 0;
-	glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
-	return success;
-}
-
-std::vector<GLchar> GetShaderLog(GLuint shader)
-{
-	GLint logSize = 0;
-	glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &logSize);
-
-	std::vector<GLchar> infoLog;
-	infoLog.resize(logSize);
-
-	GLsizei len;
-	glGetShaderInfoLog(shader, logSize, &len, infoLog.data());
-
-	return infoLog;
-}
-
-GLint CompileProgram(GLuint program, GLuint vertex, GLuint fragment)
-{
-	glAttachShader(program, vertex);
-	glAttachShader(program, fragment);
-
-	glLinkProgram(program);
-
-	GLint success = 0;
-	glGetProgramiv(program, GL_LINK_STATUS, &success);
-
-	return success;
-}
-
-std::vector<GLchar> GetProgramLog(GLuint shader)
-{
-	GLint logSize = 0;
-	glGetProgramiv(shader, GL_INFO_LOG_LENGTH, &logSize);
-
-	std::vector<GLchar> infoLog;
-	infoLog.resize(logSize);
-
-	GLsizei len = 0;
-	glGetProgramInfoLog(shader, logSize, &len, infoLog.data());
-
-	return infoLog;
-}
-
-void FilterShaderLog(std::vector<GLchar> *log)
-{
-	if (!log)
-		return;
-	for (size_t i=0; i<log->size(); ++i)
-	{
-		if ((*log)[i] == 0)
-		{
-			log->erase((*log).begin()+i);
-			--i;
-		}
-		if ((*log)[i] == '\n' && (!i || (*log)[i-1] != '\r'))
-		{
-			log->insert((*log).begin()+i, '\r');
-			++i;
-		}
-	}
-}
-
-GLuint MakeProgram(LPCSTR vert_path, LPCSTR frag_path, std::vector<GLchar> *log)
-{
-	GLuint vertex = glCreateShader(GL_VERTEX_SHADER);
-	GLint res = CompileShader(vertex, vert_path);
-	if (log)
-	{
-		std::vector<GLchar> l = GetShaderLog(vertex);
-		log->insert(log->end(),l.begin(),l.end());
-	}
-	if (res == GL_FALSE)
-	{
-		glDeleteShader(vertex);
-		FilterShaderLog(log);
-		return res;
-	}
-
-	GLuint fragment = glCreateShader(GL_FRAGMENT_SHADER);
-	res = CompileShader(fragment, frag_path);
-	if (log)
-	{
-		log->push_back('\n');
-		std::vector<GLchar> l = GetShaderLog(fragment);
-		log->insert(log->end(),l.begin(),l.end());
-	}
-	if (res == GL_FALSE)
-	{
-		glDeleteShader(vertex);
-		glDeleteShader(fragment);
-		FilterShaderLog(log);
-		return res;
-	}
-
-	GLuint program = glCreateProgram();
-	res = CompileProgram(program, vertex, fragment);
-	if (log)
-	{
-		log->push_back('\n');
-		std::vector<GLchar> l = GetProgramLog(program);
-		log->insert(log->end(),l.begin(),l.end());
-
-		FilterShaderLog(log);
-	}
-
-	glDetachShader(program, vertex);
-	glDetachShader(program, fragment);
-
-	glDeleteShader(vertex);
-	glDeleteShader(fragment);
-
-	return program;
-}
-
-void InitTextures()
-{
-	glGenBuffers (1, &RomBuffer);
-	glGenTextures(1, &RomTexture);
-	glGenBuffers (1, &PalBuffer);
-	glGenTextures(1, &PalTexture);
-	glGenBuffers (1, &VRAMBuffer);
-	glGenTextures(1, &VRAMTexture);
-	glGenBuffers (1, &RAMBuffer);
-	glGenTextures(1, &RAMTexture);
-}
-
-int Update_Rom_Buffer()
-{
-	glBindBuffer (GL_TEXTURE_BUFFER, RomBuffer);
-	glBufferData (GL_TEXTURE_BUFFER, 0x400000, Rom_Data, GL_STATIC_DRAW);
-	return 0;
-}
-
-void UpdateTextures()
-{
-	glBindTexture(GL_TEXTURE_BUFFER, RomTexture);
-	glTexBuffer (GL_TEXTURE_BUFFER, GL_R8UI, RomBuffer);
-
-	glBindBuffer (GL_TEXTURE_BUFFER, PalBuffer);
-	glBufferData (GL_TEXTURE_BUFFER, 0x80, CRam, GL_STATIC_DRAW);
-
-	glBindTexture(GL_TEXTURE_BUFFER, PalTexture);
-	glTexBuffer (GL_TEXTURE_BUFFER, GL_R8UI, PalBuffer);
-
-	glBindBuffer (GL_TEXTURE_BUFFER, VRAMBuffer);
-	glBufferData (GL_TEXTURE_BUFFER, 0x10000, VRam, GL_STATIC_DRAW);
-
-	glBindTexture(GL_TEXTURE_BUFFER, VRAMTexture);
-	glTexBuffer (GL_TEXTURE_BUFFER, GL_R8UI, VRAMBuffer);
-
-	glBindBuffer (GL_TEXTURE_BUFFER, RAMBuffer);
-	glBufferData (GL_TEXTURE_BUFFER, 0x10000, Ram_68k, GL_STATIC_DRAW);
-
-	glBindTexture(GL_TEXTURE_BUFFER, RAMTexture);
-	glTexBuffer (GL_TEXTURE_BUFFER, GL_R8UI, RAMBuffer);
-}
-
-void DelTextures()
-{
-	glBindTexture(GL_TEXTURE_BUFFER, RomTexture);
-	glTexBuffer (GL_TEXTURE_BUFFER, GL_R8UI, 0);
-
-	glDeleteTextures(1, &RomTexture);
-	glDeleteBuffers(1, &RomBuffer);
-	
-	glBindTexture(GL_TEXTURE_BUFFER, PalTexture);
-	glTexBuffer (GL_TEXTURE_BUFFER, GL_R8UI, 0);
-
-	glDeleteTextures(1, &PalTexture);
-	glDeleteBuffers(1, &PalBuffer);
-	
-	glBindTexture(GL_TEXTURE_BUFFER, VRAMTexture);
-	glTexBuffer (GL_TEXTURE_BUFFER, GL_R8UI, 0);
-
-	glDeleteTextures(1, &VRAMTexture);
-	glDeleteBuffers(1, &VRAMBuffer);
-	
-	glBindTexture(GL_TEXTURE_BUFFER, RAMTexture);
-	glTexBuffer (GL_TEXTURE_BUFFER, GL_R8UI, 0);
-
-	glDeleteTextures(1, &RAMTexture);
-	glDeleteBuffers(1, &RAMBuffer);
-}
-
-int GetLong(void *ptr)
-{
-	unsigned char* d = (unsigned char*)ptr;
-	return (d[1]<<24)|(d[0]<<16)|(d[3]<<8)|(d[2]);
-}
-
-int GetWord(void *ptr)
-{
-	unsigned char* d = (unsigned char*)ptr;
-	return (d[1]<<8)|(d[0]);
-} 
+HMODULE Render_DLL = NULL;
 
 clock_t Last_Time = 0, New_Time = 0;
 clock_t Used_Time = 0;
@@ -294,6 +43,8 @@ int Message_Style = EMU_MODE | WHITE | SIZE_X2;
 int Kaillera_Error = 0;
 unsigned char CleanAvi = 1;
 extern "C" int disableSound, disableSound2, disableRamSearchUpdate;
+
+char Genesis_Render_Plugin[1024];
 
 long int MovieSize;//Modif
 int SlowFrame=0; //Modif
@@ -466,115 +217,26 @@ void Put_Info(char *Message, int Duration)
 
 int Init_Fail(HWND hwnd, char *err)
 {
-	End_DDraw();
-	MessageBox(hwnd, err, "Oups ...", MB_OK);
+	Render_Delete();
+	MessageBox(hwnd, err, "Can't load render plugin ...", MB_OK);
 
 	return 0;
 }
 
-bool CreateGLContext(HDC hDC) 
-{
-	PIXELFORMATDESCRIPTOR pfd;
-	memset(&pfd, 0, sizeof(PIXELFORMATDESCRIPTOR));
-	pfd.nSize  = sizeof(PIXELFORMATDESCRIPTOR);
-	pfd.nVersion   = 1;
-	pfd.dwFlags    = PFD_DOUBLEBUFFER | PFD_SUPPORT_OPENGL | PFD_DRAW_TO_WINDOW;
-	pfd.iPixelType = PFD_TYPE_RGBA;
-	pfd.cColorBits = 32;
-	pfd.cDepthBits = 32;
-	pfd.iLayerType = PFD_MAIN_PLANE;
+typedef LPCSTR (*Render_Init_Func)(HWND hWnd, unsigned int* MD_Screen32, unsigned long *TAB336, BYTE* Rom, BYTE* Ram, BYTE* VRam, WORD* CRam);
+typedef LPCSTR (*Render_Render_Func)(HWND hWnd, RECT *src, RECT *dst);
+typedef LPCSTR (*Render_Void_Func)();
 
-	int nPixelFormat = ChoosePixelFormat(hDC, &pfd);
-
-	if (nPixelFormat == 0) return false;
-
-	BOOL bResult = SetPixelFormat (hDC, nPixelFormat, &pfd);
-
-	if (!bResult) return false; 
-
-	HGLRC tempContext = wglCreateContext(hDC);
-	wglMakeCurrent(hDC, tempContext);
-
-	GLenum err = glewInit();
-	if (GLEW_OK != err)
-	{
-		MessageBox(NULL, "GLEW is not initialized!", "ERROR", MB_OK);
-		return false;
-	}
-
-	int attribs[] =
-	{
-		WGL_CONTEXT_MAJOR_VERSION_ARB, 3,
-		WGL_CONTEXT_MINOR_VERSION_ARB, 1,
-		WGL_CONTEXT_FLAGS_ARB, 0,
-		0
-	};
-
-	if(wglewIsSupported("WGL_ARB_create_context") == 1)
-	{
-		GLRC = wglCreateContextAttribsARB(hDC, 0, attribs);
-		wglMakeCurrent(NULL,NULL);
-		wglDeleteContext(tempContext);
-		if (!wglMakeCurrent(hDC, GLRC))
-			return false;
-	}
-	else
-	{
-		//It's not possible to make a GL 3.x context. Use the old style context (GL 2.1 and before)
-		GLRC = tempContext;
-	}
-
-	//Checking GL version
-	const GLubyte *GLVersionString = glGetString(GL_VERSION);
-
-	//Or better yet, use the GL3 way to get the version number
-	int OpenGLVersion[2];
-	glGetIntegerv(GL_MAJOR_VERSION, &OpenGLVersion[0]);
-	glGetIntegerv(GL_MINOR_VERSION, &OpenGLVersion[1]);
-
-	if (!GLRC) return false;
-
-	return true;
-}
-
-
-int Init_DDraw(HWND hWnd)
+int Render_Init(HWND hWnd)
 {
 	int Rend;
 
 	int oldBits32 = Bits32;
 
-	End_DDraw();
+	Render_Delete();
 
 	if (Full_Screen) Rend = Render_FS;
 	else Rend = Render_W;
-
-	HDC dc = GetDC(hWnd);
-	if (!CreateGLContext(dc))
-	{
-		return Init_Fail(hWnd, "Error can't create OpenGL context!");
-	}
-	HWND staticw = CreateWindowEx(NULL, "EDIT", "",
-		 WS_OVERLAPPEDWINDOW | WS_THICKFRAME | WS_VISIBLE,
-		0,0,500,500,
-		NULL,
-		NULL,
-		NULL, NULL);
-	ShaderLogHwnd = CreateWindowEx(NULL, "EDIT", "",
-		WS_CHILD | WS_VISIBLE | ES_MULTILINE | ES_AUTOHSCROLL | ES_AUTOVSCROLL | WS_HSCROLL | WS_VSCROLL | WS_THICKFRAME,
-		0,0,500,500,
-		staticw,
-		NULL,
-		NULL, NULL); 
-	glGenTextures(1, &glScreenTexture);
-	std::vector<GLchar> log;
-	std::vector<GLchar> log1;
-	MainShader = MakeProgram("vert.glsl", "frag.glsl", &log);
-	SpriteShader = MakeProgram("vert.glsl", "sprite.glsl", &log1);
-	log.insert(log.end(), log1.begin(), log1.end());
-	SetWindowText(ShaderLogHwnd, log.data());
-	InitTextures();
-	ReleaseDC(hWnd, dc);
 
 	if (Res_X < (320 << (int) (Render_FS > 0))) Res_X = 320 << (int) (Render_FS > 0); //Upth-Add - Set a floor for the resolution
     if (Res_Y < (240 << (int) (Render_FS > 0))) Res_Y = 240 << (int) (Render_FS > 0); //Upth-Add - 320x240 for single, 640x480 for double and other
@@ -588,6 +250,33 @@ int Init_DDraw(HWND hWnd)
 		//	return Init_Fail(hWnd, "Error with lpDD->SetDisplayMode !");
 	}
 
+	Render_DLL = LoadLibrary(Genesis_Render_Plugin);
+	if (Render_DLL != NULL)
+	{
+		Render_Init_Func init = (Render_Init_Func)GetProcAddress(Render_DLL, "Renderer_Init");
+		if (init != NULL)
+		{
+			LPCSTR res = init(hWnd, MD_Screen32, TAB336, Rom_Data, Ram_68k, VRam, CRam);
+			if (res)
+			{
+				Init_Fail(hWnd, (char*)res);
+				Render_DLL = NULL;
+				return 0;
+			}
+		}
+		else
+		{
+			Init_Fail(hWnd, "Can't find Render_Init entry point");
+			Render_DLL = NULL;
+			return 0;
+		}
+	}
+	else
+	{
+		Init_Fail(hWnd, "Can't load Render plugin");
+		return 0;
+	}
+
 	// make sure the render mode is still valid (changing options in a certain order can make it invalid at this point)
 	Set_Render(hWnd, Full_Screen, -1, false);
 
@@ -597,15 +286,32 @@ int Init_DDraw(HWND hWnd)
 	return 1;
 }
 
-void End_DDraw()
+void Render_ROM_Loaded()
 {
-	if (GLRC)
+	if (Render_DLL)
 	{
-		glBindTexture(GL_TEXTURE_2D, 0);
-		glDeleteTextures(1, &glScreenTexture);
-		wglMakeCurrent(NULL, NULL);
-		wglDeleteContext(GLRC);
+		Render_Void_Func f = (Render_Void_Func)GetProcAddress(Render_DLL, "Renderer_ROM_Loaded");
+		if (f)
+			f();
 	}
+}
+
+void Render_Delete()
+{
+	if (Render_DLL)
+	{
+		Render_Void_Func del = (Render_Void_Func)GetProcAddress(Render_DLL, "Renderer_Delete");
+		if (del)
+			del();
+		FreeLibrary(Render_DLL);
+		Render_DLL = NULL;
+	}
+}
+
+void Render_Reload(HWND hWnd)
+{
+	Render_Delete();
+	Render_Init(hWnd);
 }
 
 
@@ -625,21 +331,21 @@ HRESULT RestoreGraphics(HWND hWnd)
 
 int Clear_Primary_Screen(HWND hWnd)
 {
-	if(!GLRC)
-		return 0; // bail if directdraw hasn't been initialized yet or if we're still in the middle of initializing it
+	//if(!GLRC)
+	//	return 0; // bail if directdraw hasn't been initialized yet or if we're still in the middle of initializing it
 
-	glClear(GL_COLOR_BUFFER_BIT);
-	HDC dc = GetDC(hWnd);
-	SwapBuffers(dc);
-	ReleaseDC(hWnd,dc);
+	//glClear(GL_COLOR_BUFFER_BIT);
+	//HDC dc = GetDC(hWnd);
+	//SwapBuffers(dc);
+	//ReleaseDC(hWnd,dc);
 	return 1;
 }
 
 
 int Clear_Back_Screen(HWND hWnd)
 {
-	if(!GLRC)
-		return 0; // bail if directdraw hasn't been initialized yet or if we're still in the middle of initializing it
+	//if(!GLRC)
+	//	return 0; // bail if directdraw hasn't been initialized yet or if we're still in the middle of initializing it
 
 	//glClear(GL_COLOR_BUFFER_BIT);
 
@@ -1127,14 +833,10 @@ void DrawInformationOnTheScreen()
 	}
 }
 
-GLbyte BlitData[1024*1024*3];
-
 int Flip(HWND hWnd)
 {
-	if(!GLRC)
-		return 0; // bail if directdraw hasn't been initialized yet or if we're still in the middle of initializing it
-
-	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+	//if(!GLRC)
+	//	return 0; // bail if directdraw hasn't been initialized yet or if we're still in the middle of initializing it
 
 	HRESULT rval = 1;
 	RECT RectDest, RectSrc;
@@ -1146,8 +848,17 @@ int Flip(HWND hWnd)
 	
 	CalculateDrawArea(hWnd, RectDest, RectSrc);
 
-	int Src_X = (RectSrc.right - RectSrc.left);
-	int Src_Y = (RectSrc.bottom - RectSrc.top);
+	if (Render_DLL)
+	{
+		Render_Render_Func render = (Render_Render_Func)GetProcAddress(Render_DLL, "Renderer_Render");
+		if (render)
+		{
+			render(hWnd, &RectSrc, &RectDest);
+		}
+	}
+
+	/*	int Src_X = (RectSrc->right - RectSrc->left);
+	int Src_Y = (RectSrc->bottom - RectSrc->top);
 
 	int Clr_Cmp_Val  = IS_FULL_X_RESOLUTION ? 4 : 8;
 		Clr_Cmp_Val |= IS_FULL_Y_RESOLUTION ? 16 : 32;
@@ -1168,7 +879,7 @@ int Flip(HWND hWnd)
 		 || ( Full_Screen && Render_FS >= 2))
 			Clear_Back_Screen(hWnd);
 		*/
-		if (Full_Screen && FS_VSync)
+	/*	if (Full_Screen && FS_VSync)
 			Flag_Clr_Scr = Clr_Cmp_Val | 0x100; // need to clear second buffer
 		else
 			Flag_Clr_Scr = Clr_Cmp_Val;
@@ -1176,269 +887,7 @@ int Flip(HWND hWnd)
 
 	Flag_Clr_Scr &= 0x1FF; // remove "already cleared"
 
-	for (int y=0; y<224; ++y)
-	{
-		for (int x=0; x<320; ++x)
-		{
-			unsigned int c = MD_Screen32[TAB336[y] + 8+x];
-			GLbyte * d= &BlitData[(y*320+x)*3];
-			*(d++) = (GLbyte)((c>>16)&0xFF);
-			*(d++) = (GLbyte)((c>>8)&0xFF);
-			*(d++) = (GLbyte)((c)&0xFF);
-		}
-	}
-	glBindTexture(GL_TEXTURE_2D, glScreenTexture);
-	glTexImage2D(GL_TEXTURE_2D,0,GL_RGB,320,224,0,GL_RGB,GL_UNSIGNED_BYTE,BlitData);
-	glTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );
-
-	// when texture area is small, bilinear filter the closest MIP map
-	glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
-
-	// when texture area is large, bilinear filter the first MIP map
-	glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
-
-	// if wrap is true, the texture wraps over at the edges (repeat)
-	//       ... false, the texture ends at the edges (clamp)
-	glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP );
-	glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP );
-
-	UpdateTextures();
-
-	glViewport(0, 0, RectDest.right-RectDest.left, RectDest.bottom-RectDest.top);
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-	glTranslated(-1.0, 1.0, 1.0);
-	glScaled(2.0/(RectDest.right-RectDest.left), -2.0/(RectDest.bottom-RectDest.top), 1.0);		
-
-	glTranslated((RectDest.right-RectDest.left-(RectSrc.right-RectSrc.left))/2,
-		(RectDest.bottom-RectDest.top-(RectSrc.bottom-RectSrc.top))/2, 0.0);
-
-	glEnable(GL_TEXTURE_2D);
-	//glActiveTexture(GL_TEXTURE0);
-
-	glUseProgram(MainShader);
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-	GLint res = glGetUniformLocation(MainShader, "ROM");
-	if (res != -1)
-	{
-		glUniform1i(res, 0); //Texture unit 0 is for base images.
-	}
-	res = glGetUniformLocation(MainShader, "PAL");
-	if (res != -1)
-	{
-		glUniform1i(res, 1); //Texture unit 0 is for base images.
-	}
-	res = glGetUniformLocation(MainShader, "VRAM");
-	if (res != -1)
-	{
-		glUniform1i(res, 2); //Texture unit 0 is for base images.
-	}
-	res = glGetUniformLocation(MainShader, "RAM");
-	if (res != -1)
-	{
-		glUniform1i(res, 3); //Texture unit 0 is for base images.
-	}
-
-	glActiveTexture(GL_TEXTURE0 + 0);
-	glBindTexture(GL_TEXTURE_BUFFER, RomTexture);
-	glActiveTexture(GL_TEXTURE0 + 1);
-	glBindTexture(GL_TEXTURE_BUFFER, PalTexture);
-	glActiveTexture(GL_TEXTURE0 + 2);
-	glBindTexture(GL_TEXTURE_BUFFER, VRAMTexture);
-	glActiveTexture(GL_TEXTURE0 + 3);
-	glBindTexture(GL_TEXTURE_BUFFER, RAMTexture);
-
-	int w = RectDest.right-RectDest.left;
-	int h = RectDest.bottom-RectDest.top;
-	glBegin(GL_TRIANGLES);
-	glColor3f(-20000.0f, -20000.0f, 0.0f);
-	glVertex2i(-20000,  -20000);
-	glColor3f(-20000.0f, 20000.0f, 0.0f);
-	glVertex2i(-20000, 20000);
-	glColor3f(20000, 20000.0f, 0.0f);
-	glVertex2i(20000, 20000);
-
-	glColor3f(-20000.0f, -20000.0f, 0.0f);
-	glVertex2i(-20000,  -20000);
-	glColor3f(20000.0f, 20000.0f, 0.0f);
-	glVertex2i(20000, 20000);
-	glColor3f(20000.0f, -20000.0f, 0.0f);
-	glVertex2i(20000, -20000);
-	glEnd();
-
-	glUseProgram(0);
-
-	int ring_current = GetLong(&Ram_68k[0xEE42]);
-	int ring_start = 0;
-	int ring_end = 0;
-	for (int i=ring_current; i>=0 && i > ring_current-4000; i-=4)
-		if (GetLong(&Rom_Data[i]) == 0)
-		{
-			ring_start = i;
-			break;
-		}
-
-	for (int i=ring_current; i<sizeof(Rom_Data) && i < ring_current+4000; i+=4)
-		if (Rom_Data[(i)^1] == 0xFF
-		 && Rom_Data[(i+1)^1] == 0xFF)
-		 {
-			ring_end = i;
-			break;
-		 }
-
-	if (ring_start && ring_end
-	&& ring_end - ring_start < 512*4)
-	{
-		int camerax = GetWord(&Ram_68k[0xEE78]);
-		int cameray = GetWord(&Ram_68k[0xEE7C]);
-
-		glUseProgram(SpriteShader);
-		GLint res = glGetUniformLocation(SpriteShader, "sprite_entry");
-		if (res != -1)
-		{
-			switch (Ram_68k[0xFEB3^1])
-			{
-				case 0:
-					glUniform1i(res, (0x26BC+0)|(0x50000));
-					break;
-				case 1:
-					glUniform1i(res, (0x26BC+4)|(0x50000));
-					break;
-				case 2:
-					glUniform1i(res, (0x26BC+8)|(0x10000));
-					break;
-				case 3:
-					glUniform1i(res, (0x26BC+4)|(0x50800));
-					break;
-			}
-		}
-		res = glGetUniformLocation(SpriteShader, "PAL");
-		if (res != -1)
-		{
-			glUniform1i(res, 1); //Texture unit 0 is for base images.
-		}
-		res = glGetUniformLocation(SpriteShader, "VRAM");
-		if (res != -1)
-		{
-			glUniform1i(res, 2); //Texture unit 0 is for base images.
-		}
-		
-
-		glBegin(GL_TRIANGLES);
-		for (int i=0; ring_start+i<ring_end; i+=4)
-		{
-			if (GetWord(&Ram_68k[0xE700+(i>>1)]) != 0)
-				continue;
-			float rx = GetWord(&Rom_Data[ring_start+i]) - camerax;
-			float ry = GetWord(&Rom_Data[ring_start+i+2]) - cameray;
-			float rw = 8;
-			if (Ram_68k[0xFEB3^1] ==  2)
-				rw = 4;
-			float rh = 8;
-			//if (rx < 0 || rx > w)
-			//	continue;
-			//if (ry < 0 || ry > h)
-			//	continue;
-
-			glColor3f(0.0f, 0.0f, 0.0f);
-			glVertex2f(rx-rw, ry-rh);
-			glColor3f(0.0f, 16.0f, 0.0f);
-			glVertex2f(rx-rw, ry+rh);
-			glColor3f(rw*2, 16.0f, 0.0f);
-			glVertex2f(rx+rw, ry+rh);
-
-			glColor3f(0.0f, 0.0f, 0.0f);
-			glVertex2f(rx-rw, ry-rh);
-			glColor3f(rw*2, 16.0f, 0.0f);
-			glVertex2f(rx+rw, ry+rh);
-			glColor3f(rw*2, 0.0f, 0.0f);
-			glVertex2f(rx+rw, ry-rh);
-		}
-		glEnd();
-
-		glUseProgram(0);
-
-		glUseProgram(SpriteShader);
-		int link = 0;
-		for (int i=0; i<80; ++i)
-		{
-			int so = 0xF800+link*8;
-			int size = VRam[(so+2)^1];
-			GLint res = glGetUniformLocation(SpriteShader, "sprite_entry");
-			if (res != -1)
-			{
-				glUniform1i(res, GetWord(&VRam[so+4])|((size&0xF)<<16)); //Texture unit 0 is for base images.
-			}
-
-			int yy = GetWord(&VRam[so]);
-			if (yy == 0)
-				continue;
-			int xx = GetWord(&VRam[so+6]);
-			if (xx == 0)
-				continue;
-			float y = yy-0x80;
-			float x = xx-0x80;
-			float sw = (((size>>2)&3)+1)*8;
-			float sh = (((size)&3)+1)*8;
-
-			glBegin(GL_TRIANGLES);
-
-			glColor3f (0.0f, 0.0f, 0.0f);
-			glVertex2f(x   , y   );
-			glColor3f (0.0f,   sh, 0.0f);
-			glVertex2f(x   , y+sh);
-			glColor3f (  sw,   sh, 0.0f);
-			glVertex2f(x+sw, y+sh);
-
-			glColor3f (0.0f, 0.0f, 0.0f);
-			glVertex2f(x   , y   );
-			glColor3f (  sw,   sh, 0.0f);
-			glVertex2f(x+sw, y+sh);
-			glColor3f (  sw, 0.0f, 0.0f);
-			glVertex2f(x+sw, y   );
-
-			glEnd();
-			link = VRam[(so+3)^1];
-			if (link == 0)
-				break;
-		}
-		glUseProgram(0);
-	}
-
-	glActiveTexture(GL_TEXTURE0 + 1);
-	glBindTexture(GL_TEXTURE_BUFFER, 0);
-	glActiveTexture(GL_TEXTURE0 + 2);
-	glBindTexture(GL_TEXTURE_BUFFER, 0);
-	glActiveTexture(GL_TEXTURE0 + 3);
-	glBindTexture(GL_TEXTURE_BUFFER, 0);
-	glActiveTexture(GL_TEXTURE0 + 0);
-	glBindTexture(GL_TEXTURE_BUFFER, 0);
-	
-	glColor3f(1.0, 1.0, 1.0f);
-	glBindTexture(GL_TEXTURE_2D, glScreenTexture);
-
-	glBegin(GL_TRIANGLES);
-	glTexCoord3f(0.0f, 1.0f, 0.0f);
-	glVertex2i(0, 224);
-	glTexCoord3f(0.0f, 0.0f, 0.0f);
-	glVertex2i(0, 0);
-	glTexCoord3f(1.0f, 0.0f, 0.0f);
-	glVertex2i(320, 0);
-
-	glTexCoord3f(0.0f, 1.0f, 0.0f);
-	glVertex2i(0,  224);
-	glTexCoord3f(1.0f, 0.0f, 0.0f);
-	glVertex2i(320, 0);
-	glTexCoord3f(1.0f, 1.0f, 0.0f);
-	glVertex2i(320, 224);
-	glEnd();
-	
-	HDC dc = GetDC(hWnd);
-	SwapBuffers(dc);
-	ReleaseDC(hWnd, dc);
-
+	*/
 	/*if (Full_Screen)
 	{
 		if (Render_FS < 2)

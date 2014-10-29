@@ -71,7 +71,14 @@ void main(void)
 	if ((se & 0x1000) != 0)
 		yy = vv - 1 - yy;
 	vec4 c = getTile((se & 0xFFFF) + xx*vv + yy, x&7, y&7);
+	if (c.a >= 4)
+		gl_FragDepth = 0.3; // sprite low
+	else
+		gl_FragDepth = 0.6; // sprite high
 	if (c.a == 4)
+	{
 		c.a = 0;
+		gl_FragDepth = 0.9; // move far away
+	}
 	out_Color = c;
 }

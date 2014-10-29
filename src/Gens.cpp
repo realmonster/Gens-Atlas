@@ -909,7 +909,7 @@ int Init_Genesis(struct Rom *MD_Rom)
 
 	Byte_Swap(Rom_Data, Rom_Size);
 
-	Update_Rom_Buffer();
+	Render_ROM_Loaded();
 	M68K_Init(); // Modif N. -- added for symmetry, maybe it helps something
 	M68K_Reset(0,1);
 	Z80_Reset();

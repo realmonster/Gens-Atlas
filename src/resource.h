@@ -162,9 +162,13 @@
 #define IDC_32XBIOS_FILES               1113
 #define IDC_GENESISBIOS_FILE            1114
 #define ID_DEFAULT                      1115
+#define IDC_EDIT_RENDER                 1115
 #define IDC_STATIC_CONT                 1116
+#define IDC_STATIC_RENDER               1116
 #define IDC_SLIDER_CONTRASTE            1117
+#define ID_CHANGE_RENDER                1117
 #define IDC_STATIC_BRIGHT               1118
+#define IDC_RENDER_FILE                 1118
 #define IDC_SLIDER_LUMINOSITE           1119
 #define IDC_CHECK_GREYSCALE             1120
 #define IDC_CHECK_INVERT                1121
@@ -362,6 +366,7 @@
 #define ID_GRAPHICS_SHOT                40061
 #define ID_GRAPHICS_FS_SAME_RES         40062
 #define ID_GRAPHICS_CLIPBOARD           40063
+#define ID_GRAPHICS_RENDER_RELOAD       40064
 #define ID_GRAPHICS_SIZE_1X             40065
 #define ID_GRAPHICS_SIZE_2X             40066
 #define ID_GRAPHICS_SIZE_3X             40067
@@ -387,7 +392,6 @@
 #define ID_GRAPHICS_LAYER32X_LOW        40088
 #define ID_GRAPHICS_LAYER32X_HIGH       40089
 #define ID_GRAPHICS_SPRITEALWAYS        40090
-#define ID_GRAPHICS_SPRITEBOXING        40108
 #define ID_GRAPHICS_FRAMESKIP_0         40091
 #define ID_GRAPHICS_FRAMESKIP_1         40092
 #define ID_GRAPHICS_FRAMESKIP_2         40093
@@ -405,6 +409,7 @@
 #define ID_CPU_RESET_SSH2               40105
 #define ID_CPU_ACCURATE_SYNCHRO         40106
 #define ID_CPU_SOFTRESET                40107
+#define ID_GRAPHICS_SPRITEBOXING        40108
 #define ID_CPU_DEBUG_GENESIS_68000      40110
 #define ID_CPU_DEBUG_GENESIS_Z80        40111
 #define ID_CPU_DEBUG_GENESIS_VDP        40112

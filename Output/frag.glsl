@@ -86,12 +86,34 @@ vec4 getBlock128(int id, int x, int y)
 
 vec4 background(int id, int x, int y)
 {
-	if (x < 0 || y < 0)
-		return vec4(0.3,0.3,0.3,1.0);
 	int w = _texelFetch(RAM, 0x8000+id*2+1).r;
 	int h = _texelFetch(RAM, 0x8000+id*2+5).r;
-	if (x > w * 128 || y > h * 128)
-		return vec4(0.3,0.3,0.3,1.0);
+	if (y < 0)
+		y = (y%(h*128))+(h*128);
+	else
+		y = y%(h*128);
+	if (id == 0)
+	{
+	if (x < 0)
+		x = (x%(w*128))+(w*128);
+	else
+		x = x%(w*128);
+	}
+
+	if (id == 1)
+	{
+		x += ((_texelFetch(PAL,0x100+y*2).r<<8)|_texelFetch(PAL,0x101+y*2).r);
+		w = _texelFetch(PAL,0x2100+y).r;
+		//x -= -30;//128+58;
+		if (x < 0)
+			x = (x%(w*128))+(w*128);
+		else
+			x = x%(w*128);
+		/*if (x < 0)
+			x += ((-x)/(w*128)+1)*w*128;
+		x -= (x/(w*128))*(w*128);*/
+	}
+
 	int xx = x >> 7;
 	int yy = y >> 7;
 	int row = (_texelFetch(RAM, 0x8000+8+id*2+yy*4).r<<8)+
@@ -106,10 +128,51 @@ void main(void)
 	int cy = (_texelFetch(RAM,0xEE7C).r<<8)|_texelFetch(RAM,0xEE7D).r;
 	int q = int(in_Position.x+cx);
 	int w = int(in_Position.y+cy);
-	int qq = q >> 7;
-	int ww = w >> 7;
+	//int qq = q >> 7;
+	//int ww = w >> 7;
+	
+	int ccx = 0;//(_texelFetch(RAM,0xEE8C).r<<8)|_texelFetch(RAM,0xEE8D).r;
+	int ccy = (_texelFetch(RAM,0xEE90).r<<8)|_texelFetch(RAM,0xEE91).r;
+	int ww = int(in_Position.y+ccy);
+	int qq = int(in_Position.x+ccx);
 
-	out_Color = background(0,q,w);//getBlock128(qq+ww*8,q&127,w&127);
+	vec4 A = background(0,q,w); // front plane A
+	vec4 B = background(1,qq,ww); // back plane B
+
+	float ad = 0.7-float(int(A.a/4.0))*0.3; // a depth
+	float bd = 0.8-float(int(B.a/4.0))*0.3; // b depth
+	
+	if (A.a == 0 || A.a == 4)
+	{
+		// if A transparent then move it far away
+		ad = 5;
+	}
+	if (B.a == 0 || B.a == 4)
+	{
+		// if B transparent then move it far away
+		bd = 6;
+	}
+
+	if (ad > 1 && bd > 1)
+	{
+		// backdrop
+		out_Color = A;
+		gl_FragDepth = 0.9;
+		return;
+	}
+
+	if (ad <= bd)
+	{
+		// A in front
+		out_Color = A;
+		gl_FragDepth = ad;
+	}
+	else
+	{
+		// B in front
+		out_Color = B;
+		gl_FragDepth = bd;
+	}
 	return;
 /*	int q = int(in_Position.x);
 	int w = int(in_Position.y);
