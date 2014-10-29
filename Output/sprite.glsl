@@ -5,12 +5,15 @@
  
 precision highp float; // needed only for version 1.30
 
-uniform isamplerBuffer PAL;
+uniform isamplerBuffer RAM;
 uniform isamplerBuffer VRAM;
 uniform int sprite_entry;
+uniform int water_level;
 
 in vec3 in_Position;
 out vec4 out_Color;
+
+int pal_offset;
 
 ivec4 _texelFetch(isamplerBuffer b, int pos)
 {
@@ -19,8 +22,8 @@ ivec4 _texelFetch(isamplerBuffer b, int pos)
 
 vec4 getPal(int id)
 {
-	int b = _texelFetch(PAL,id*2).r;
-	int gr = _texelFetch(PAL,id*2+1).r;
+	int b = _texelFetch(RAM,pal_offset+id*2).r;
+	int gr = _texelFetch(RAM,pal_offset+id*2+1).r;
 	int g = (gr >> 4) & 0xE; 
 	int r = gr & 0xE;
 	int a = 14;
@@ -64,6 +67,10 @@ void main(void)
 	int vv = (hhvv & 0x3)+1;
 	int x = int(in_Position.x);
 	int y = int(in_Position.y);
+	if (y > water_level)
+		pal_offset = 0xF080; // water palette;
+	else
+		pal_offset = 0xFC00; // normal palette;
 	int xx = (x >> 3);
 	int yy = (y >> 3);
 	if ((se & 0x800) != 0)

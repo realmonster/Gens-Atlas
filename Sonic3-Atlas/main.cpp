@@ -728,6 +728,15 @@ void DrawSprite(int id, int x, int y, int size)
 		glUniform1i(res, id|(size<<16)); //Texture unit 0 is for base images.
 	}
 
+	res = glGetUniformLocation(SpriteShader, "water_level");
+	if (res != -1)
+	{
+		int water_level = 0x100;
+		if (RAM[0xF730^1] != 0)
+			water_level = *(WORD*)&RAM[0xF646]-*(WORD*)&RAM[0xEE7C]-y;
+		glUniform1i(res, water_level); //Texture unit 0 is for base images.
+	}
+
 	float sw = (((size>>2)&3)+1)*8;
 	float sh = (((size)&3)+1)*8;
 
@@ -929,10 +938,10 @@ DLLEXPORT void Renderer_Render(HWND hWnd, const RECT *RectSrc, const RECT *RectD
 					break;
 			}
 		}
-		res = glGetUniformLocation(SpriteShader, "PAL");
+		res = glGetUniformLocation(SpriteShader, "RAM");
 		if (res != -1)
 		{
-			glUniform1i(res, 1); //Texture unit 0 is for base images.
+			glUniform1i(res, 3); //Texture unit 0 is for base images.
 		}
 		res = glGetUniformLocation(SpriteShader, "VRAM");
 		if (res != -1)
@@ -940,8 +949,7 @@ DLLEXPORT void Renderer_Render(HWND hWnd, const RECT *RectSrc, const RECT *RectD
 			glUniform1i(res, 2); //Texture unit 0 is for base images.
 		}
 		
-
-		glBegin(GL_TRIANGLES);
+		res = glGetUniformLocation(SpriteShader, "water_level");
 		for (int i=0; ring_start+i<ring_end; i+=4)
 		{
 			if (GetWord(&RAM[0xE700+(i>>1)]) != 0)
@@ -956,6 +964,14 @@ DLLEXPORT void Renderer_Render(HWND hWnd, const RECT *RectSrc, const RECT *RectD
 			//	continue;
 			//if (ry < 0 || ry > h)
 			//	continue;
+			if (res != -1)
+			{
+				int water_level = 0x100;
+				if (RAM[0xF730^1] != 0)
+					water_level = *(WORD*)&RAM[0xF646]-*(WORD*)&RAM[0xEE7C]-(ry-rh);
+				glUniform1i(res, water_level);
+			}
+			glBegin(GL_TRIANGLES);
 
 			glColor3f(0.0f, 0.0f, 0.0f);
 			glVertex2f(rx-rw, ry-rh);
@@ -970,8 +986,9 @@ DLLEXPORT void Renderer_Render(HWND hWnd, const RECT *RectSrc, const RECT *RectD
 			glVertex2f(rx+rw, ry+rh);
 			glColor3f(rw*2, 0.0f, 0.0f);
 			glVertex2f(rx+rw, ry-rh);
+
+			glEnd();
 		}
-		glEnd();
 
 		glUseProgram(0);
 
@@ -1082,7 +1099,7 @@ DLLEXPORT void Renderer_Render(HWND hWnd, const RECT *RectSrc, const RECT *RectD
 	glActiveTexture(GL_TEXTURE0 + 0);
 	glBindTexture(GL_TEXTURE_BUFFER, 0);
 	
-	/*glDisable(GL_DEPTH_TEST);
+	glDisable(GL_DEPTH_TEST);
 	glColor3f(1.0, 1.0, 1.0f);
 	glBindTexture(GL_TEXTURE_2D, glScreenTexture);
 
@@ -1100,7 +1117,7 @@ DLLEXPORT void Renderer_Render(HWND hWnd, const RECT *RectSrc, const RECT *RectD
 	glVertex2i(320, 0);
 	glTexCoord3f(1.0f, 1.0f, 0.0f);
 	glVertex2i(320, 224);
-	glEnd();*/
+	glEnd();
 	
 	HDC dc = GetDC(hWnd);
 	SwapBuffers(dc);

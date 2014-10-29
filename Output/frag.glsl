@@ -13,6 +13,8 @@ uniform isamplerBuffer RAM;
 in vec3 in_Position;
 out vec4 out_Color;
 
+int pal_offset;
+
 ivec4 _texelFetch(isamplerBuffer b, int pos)
 {
 	return texelFetch(b, pos^1);
@@ -20,8 +22,8 @@ ivec4 _texelFetch(isamplerBuffer b, int pos)
 
 vec4 getPal(int id)
 {
-	int b = _texelFetch(PAL,id*2).r;
-	int gr = _texelFetch(PAL,id*2+1).r;
+	int b = _texelFetch(RAM,pal_offset+id*2).r;
+	int gr = _texelFetch(RAM,pal_offset+id*2+1).r;
 	int g = (gr >> 4) & 0xE; 
 	int r = gr & 0xE;
 	int a = 14;
@@ -128,6 +130,11 @@ void main(void)
 	int cy = (_texelFetch(RAM,0xEE7C).r<<8)|_texelFetch(RAM,0xEE7D).r;
 	int q = int(in_Position.x+cx);
 	int w = int(in_Position.y+cy);
+	int water_level = (_texelFetch(RAM,0xF646).r<<8)|_texelFetch(RAM,0xF647).r;
+	if (_texelFetch(RAM,0xF730).r != 0 && w > water_level)
+		pal_offset = 0xF080; // water palette;
+	else
+		pal_offset = 0xFC00; // normal palette;
 	//int qq = q >> 7;
 	//int ww = w >> 7;
 	
