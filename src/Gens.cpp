@@ -1230,6 +1230,8 @@ int Do_Genesis_Frame(bool fast)
 
 	if (fast)
 		FakeVDPScreen = true;
+	if (!fast)
+		Render_PreRender();
 
 	for(VDP_Current_Line = 0; VDP_Current_Line < VDP_Num_Vis_Lines; VDP_Current_Line++)
 	{

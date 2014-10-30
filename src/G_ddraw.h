@@ -50,6 +50,7 @@ extern int (*Update_Frame)();
 extern int (*Update_Frame_Fast)();
 
 void Render_ROM_Loaded();
+void Render_PreRender();
 int Render_Init(HWND hWnd);
 void Render_Delete(void);
 void Render_Reload(HWND hWnd);

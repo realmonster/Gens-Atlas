@@ -296,6 +296,16 @@ void Render_ROM_Loaded()
 	}
 }
 
+void Render_PreRender()
+{
+	if (Render_DLL)
+	{
+		Render_Void_Func f = (Render_Void_Func)GetProcAddress(Render_DLL, "Renderer_PreRender");
+		if (f)
+			f();
+	}
+}
+
 void Render_Delete()
 {
 	if (Render_DLL)

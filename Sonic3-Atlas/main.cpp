@@ -196,6 +196,14 @@ struct SafeArray
 	}
 };
 
+static BYTE current_RAM[0x10000];
+static BYTE current_VRAM[0x10000];
+static WORD current_CRAM[128];
+
+static BYTE* emu_RAM;
+static BYTE* emu_VRAM;
+static WORD* emu_CRAM;
+
 SafeArray<BYTE> ROM;
 SafeArray<BYTE> RAM;
 SafeArray<BYTE> VRAM;
@@ -529,6 +537,14 @@ DLLEXPORT void Renderer_ROM_Loaded()
 	glBufferData (GL_TEXTURE_BUFFER, 0x400000, ROM.data, GL_STATIC_DRAW);
 }
 
+
+DLLEXPORT void Renderer_PreRender()
+{
+	memcpy(current_RAM,emu_RAM,0x10000);
+	memcpy(current_VRAM,emu_VRAM,0x10000);
+	memcpy(current_CRAM,emu_CRAM,128);
+}
+
 void UpdateTextures()
 {
 	glBindTexture(GL_TEXTURE_BUFFER, RomTexture);
@@ -662,10 +678,13 @@ DLLEXPORT LPCSTR Renderer_Init(HWND hWnd,unsigned int* _MD_Screen32,unsigned lon
 {
 	MD_Screen32 = _MD_Screen32;
 	TAB336 = _TAB336;
-	ROM.data = _ROM;  ROM.mask = 0x3fffff;
-	RAM.data = _RAM;  RAM.mask = 0xffff;
-	VRAM.data = _VRAM; VRAM.mask = 0xFFFF;
-	CRAM.data = _CRAM; CRAM.mask = 127;
+	emu_RAM = _RAM;
+	emu_VRAM = _VRAM;
+	emu_CRAM = _CRAM;
+	ROM.data = _ROM;          ROM.mask = 0x3fffff;
+	RAM.data = current_RAM;   RAM.mask = 0xffff;
+	VRAM.data = current_VRAM; VRAM.mask = 0xFFFF;
+	CRAM.data = current_CRAM; CRAM.mask = 127;
 	HDC dc = GetDC(hWnd);
 	if (!CreateGLContext(dc))
 	{
@@ -790,6 +809,8 @@ bool priority_cmp(int a, int b)
 	return a<b;
 }
 
+extern void DrawObject(int id, int arg, int flags, int x, int y);
+
 DLLEXPORT void Renderer_Render(HWND hWnd, const RECT *RectSrc, const RECT *RectDest)
 {
 	glDepthRange(-1, 1);
@@ -874,6 +895,7 @@ DLLEXPORT void Renderer_Render(HWND hWnd, const RECT *RectSrc, const RECT *RectD
 	glActiveTexture(GL_TEXTURE0 + 3);
 	glBindTexture(GL_TEXTURE_BUFFER, RAMTexture);
 
+	// Foreground, Background layers
 	int w = RectDest->right-RectDest->left;
 	int h = RectDest->bottom-RectDest->top;
 	glBegin(GL_TRIANGLES);
@@ -991,101 +1013,188 @@ DLLEXPORT void Renderer_Render(HWND hWnd, const RECT *RectSrc, const RECT *RectD
 		}
 
 		glUseProgram(0);
+	}
 
-		glUseProgram(SpriteShader);
-		int link = 0;
-		std::vector<int> links;
-		for (int i=0; i<80; ++i)
+	int object_current = GetLong(&RAM[0xF772]);
+	int object_start = 0;
+	int object_end = 0;
+	for (int i=object_current; i>=0 && i > object_current-800*6; i-=6)
+		if (GetLong(&ROM[i+2]) == 0)
 		{
-			links.push_back(link);
-			int so = 0xF800+link*8;
-			link = VRAM[(so+3)^1];
-			if (link == 0)
-				break;
+			object_start = i;
+			break;
 		}
 
-		/*for (int i = links.size()-1; i>=0; --i)
+	for (int i=object_current; i<0x400000 && i < object_current+800*6; i+=6)
+		if (ROM[(i)^1] == 0xFF
+		 && ROM[(i+1)^1] == 0xFF)
+		 {
+			object_end = i;
+			break;
+		 }
+	if (object_start && object_end
+	&& object_end - object_start < 800*6)
+	{
+		int camerax = GetWord(&RAM[0xEE78]);
+		int cameray = GetWord(&RAM[0xEE7C]);
+
+		glUseProgram(SpriteShader);
+		GLint res = glGetUniformLocation(SpriteShader, "sprite_entry");
+		if (res != -1)
 		{
-			link = links[i];
-			int so = 0xF800+link*8;
-			int size = VRAM[(so+2)^1];
-			GLint res = glGetUniformLocation(SpriteShader, "sprite_entry");
-			if (res != -1)
+			switch (RAM[0xFEB3^1])
 			{
-				glUniform1i(res, GetWord(&VRAM[so+4])|((size&0xF)<<16)); //Texture unit 0 is for base images.
+				case 0:
+					glUniform1i(res, (0x26BC+0)|(0x50000));
+					break;
+				case 1:
+					glUniform1i(res, (0x26BC+4)|(0x50000));
+					break;
+				case 2:
+					glUniform1i(res, (0x26BC+8)|(0x10000));
+					break;
+				case 3:
+					glUniform1i(res, (0x26BC+4)|(0x50800));
+					break;
 			}
-
-			int yy = GetWord(&VRAM[so]);
-			if (yy == 0)
-				continue;
-			int xx = GetWord(&VRAM[so+6]);
-			if (xx == 0)
-				continue;
-			float y = yy-0x80;
-			float x = xx-0x80;
-			float sw = (((size>>2)&3)+1)*8;
-			float sh = (((size)&3)+1)*8;
-
-			glBegin(GL_TRIANGLES);
-
-			glColor3f (0.0f, 0.0f, 0.0f);
-			glVertex2f(x   , y   );
-			glColor3f (0.0f,   sh, 0.0f);
-			glVertex2f(x   , y+sh);
-			glColor3f (  sw,   sh, 0.0f);
-			glVertex2f(x+sw, y+sh);
-
-			glColor3f (0.0f, 0.0f, 0.0f);
-			glVertex2f(x   , y   );
-			glColor3f (  sw,   sh, 0.0f);
-			glVertex2f(x+sw, y+sh);
-			glColor3f (  sw, 0.0f, 0.0f);
-			glVertex2f(x+sw, y   );
-
-			glEnd();
-		}*/
+		}
+		res = glGetUniformLocation(SpriteShader, "RAM");
+		if (res != -1)
+		{
+			glUniform1i(res, 3); //Texture unit 0 is for base images.
+		}
+		res = glGetUniformLocation(SpriteShader, "VRAM");
+		if (res != -1)
+		{
+			glUniform1i(res, 2); //Texture unit 0 is for base images.
+		}
 		
+		res = glGetUniformLocation(SpriteShader, "water_level");
+		for (int i=0; object_start+i<object_end; i+=6)
 		{
-			sprite_priority.clear();
-			sprite_indexes.clear();
+			if (GetWord(&RAM[0xEB00+(i/6)])&0x80)
+				continue;
+			float rx = GetWord(&ROM[object_start+i]) - camerax;
+			float ry = (GetWord(&ROM[object_start+i+2])&0xFFF) - cameray;
+			DrawObject(ROM[(object_start+i+4)^1],
+					ROM[(object_start+i+5)^1],
+					(GetWord(&ROM[object_start+i+2])>>13)&3,
+					rx,
+					ry);
+		}
+
+		glUseProgram(0);
+	}
+
+	// Sprites in VDP table
+	/*int link = 0;
+	glUseProgram(SpriteShader);
+	std::vector<int> links;
+	for (int i=0; i<80; ++i)
+	{
+		links.push_back(link);
+		int so = 0xF800+link*8;
+		link = VRAM[(so+3)^1];
+		if (link == 0)
+			break;
+	}
+
+	for (int i = links.size()-1; i>=0; --i)
+	{
+		link = links[i];
+		int so = 0xF800+link*8;
+		int size = VRAM[(so+2)^1];
+		GLint res = glGetUniformLocation(SpriteShader, "sprite_entry");
+		if (res != -1)
+		{
+			glUniform1i(res, GetWord(&VRAM[so+4])|((size&0xF)<<16)); //Texture unit 0 is for base images.
+		}
+
+		int yy = GetWord(&VRAM[so]);
+		if (yy == 0)
+			continue;
+		int xx = GetWord(&VRAM[so+6]);
+		if (xx == 0)
+			continue;
+		float y = yy-0x80;
+		float x = xx-0x80;
+		float sw = (((size>>2)&3)+1)*8;
+		float sh = (((size)&3)+1)*8;
+
+		glBegin(GL_TRIANGLES);
+
+		glColor3f (0.0f, 0.0f, 0.0f);
+		glVertex2f(x   , y   );
+		glColor3f (0.0f,   sh, 0.0f);
+		glVertex2f(x   , y+sh);
+		glColor3f (  sw,   sh, 0.0f);
+		glVertex2f(x+sw, y+sh);
+
+		glColor3f (0.0f, 0.0f, 0.0f);
+		glVertex2f(x   , y   );
+		glColor3f (  sw,   sh, 0.0f);
+		glVertex2f(x+sw, y+sh);
+		glColor3f (  sw, 0.0f, 0.0f);
+		glVertex2f(x+sw, y   );
+
+		glEnd();
+	}
+	glUseProgram(0);
+	*/
+
+	// Objects in Status Table
+	{
+		glUseProgram(SpriteShader);
+
+		res = glGetUniformLocation(SpriteShader, "RAM");
+		if (res != -1)
+		{
+			glUniform1i(res, 3); //Texture unit 0 is for base images.
+		}
+		res = glGetUniformLocation(SpriteShader, "VRAM");
+		if (res != -1)
+		{
+			glUniform1i(res, 2); //Texture unit 0 is for base images.
+		}
+		sprite_priority.clear();
+		sprite_indexes.clear();
 			
-			for (int i = 0xB000; i<0xCFCB; i+=0x4A)
+		for (int i = 0xB000; i<0xCFCB; i+=0x4A)
+		{
+			sprite_indexes.push_back(sprite_priority.size());
+			sprite_priority.push_back(*(WORD*)&RAM[i+8]);
+		}
+		std::sort(sprite_indexes.begin(),sprite_indexes.end(),priority_cmp);
+		int camerax = GetWord(&RAM[0xEE78]);
+		int cameray = GetWord(&RAM[0xEE7C]);
+		for (int z = sprite_indexes.size(); z>=0; --z)
+		{
+			int i = 0xB000 + sprite_indexes[z]*0x4A;
+			if (RAM[i] == 0
+			&& RAM[i+1] == 0
+			&& RAM[i+2] == 0
+			&& RAM[i+3] == 0)
+				continue;
+			int flags = RAM[(i+4)^1];
+			if (flags & (1<<6)) // compound
 			{
-				sprite_indexes.push_back(sprite_priority.size());
-				sprite_priority.push_back(*(WORD*)&RAM[i+8]);
+				int count = *(WORD*)&RAM[i+0x16];
+				if (count > 20)
+					count = 20;
+				for (int j=count-1; j>=0; --j)
+					DrawFrame(GetLong(&RAM[i+0xC]), // offset
+						RAM[i+0x18+j*6+4], // frame
+						flags, // flags
+						*(WORD*)&RAM[i+0xA], // base
+						(*(short*)&RAM[i+0x10])*0-camerax+*(short*)&RAM[i+0x18+j*6],
+						(*(short*)&RAM[i+0x14])*0-cameray+*(short*)&RAM[i+0x18+j*6+2]);
 			}
-			std::sort(sprite_indexes.begin(),sprite_indexes.end(),priority_cmp);
-			int camerax = GetWord(&RAM[0xEE78]);
-			int cameray = GetWord(&RAM[0xEE7C]);
-			for (int z = sprite_indexes.size(); z>=0; --z)
-			{
-				int i = 0xB000 + sprite_indexes[z]*0x4A;
-				if (RAM[i] == 0
-				&& RAM[i+1] == 0
-				&& RAM[i+2] == 0
-				&& RAM[i+3] == 0)
-					continue;
-				int flags = RAM[(i+4)^1];
-				if (flags & (1<<6)) // compound
-				{
-					int count = *(WORD*)&RAM[i+0x16];
-					if (count > 20)
-						count = 20;
-					for (int j=count-1; j>=0; --j)
-						DrawFrame(GetLong(&RAM[i+0xC]), // offset
-							RAM[i+0x18+j*6+4], // frame
-							flags, // flags
-							*(WORD*)&RAM[i+0xA], // base
-							(*(short*)&RAM[i+0x10])*0-camerax+*(short*)&RAM[i+0x18+j*6],
-							(*(short*)&RAM[i+0x14])*0-cameray+*(short*)&RAM[i+0x18+j*6+2]);
-				}
-				DrawFrame(GetLong(&RAM[i+0xC]), // offset
-					RAM[(i+0x22)^1], // frame
-					flags, // flags
-					*(WORD*)&RAM[i+0xA], // base
-					*(short*)&RAM[i+0x10]-camerax,
-					*(short*)&RAM[i+0x14]-cameray);
-			}
+			DrawFrame(GetLong(&RAM[i+0xC]), // offset
+				RAM[(i+0x22)^1], // frame
+				flags, // flags
+				*(WORD*)&RAM[i+0xA], // base
+				*(short*)&RAM[i+0x10]-camerax,
+				*(short*)&RAM[i+0x14]-cameray);
 		}
 		glUseProgram(0);
 	}
@@ -1098,7 +1207,8 @@ DLLEXPORT void Renderer_Render(HWND hWnd, const RECT *RectSrc, const RECT *RectD
 	glBindTexture(GL_TEXTURE_BUFFER, 0);
 	glActiveTexture(GL_TEXTURE0 + 0);
 	glBindTexture(GL_TEXTURE_BUFFER, 0);
-	
+
+	// Genesis Screen
 	glDisable(GL_DEPTH_TEST);
 	glColor3f(1.0, 1.0, 1.0f);
 	glBindTexture(GL_TEXTURE_2D, glScreenTexture);
