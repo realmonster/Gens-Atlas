@@ -462,6 +462,12 @@ void DrawSprite(int x, int y, int id, int size)
 // x, y = position from top left corner of camera.
 // offset = mappings offset
 // frame = frame from mapping
+// flags = rcs??cvh (byte)
+//		r - on screen
+//      c - compound
+//      s - static mappings
+//      c - playfield coordinates
+//		v h - flips 
 // base = pccvhnnn nnnnnnnn
 //      p - priority
 //      cc - palette
@@ -470,7 +476,7 @@ void DrawSprite(int x, int y, int id, int size)
 void DrawFrame(int x, int y, int offset, int frame, int flags, int base)
 {
 	int count = 1;
-	if (!(flags&(1<<5)))
+	if (!(flags&(1<<5))) // if not static mappings
 	{
 		offset += *(short*)&ROM[offset+frame*2];
 		count = *(WORD*)&ROM[offset];
@@ -498,7 +504,8 @@ bool priority_cmp(int a, int b)
 	return a<b;
 }
 
-extern void DrawObject(int id, int arg, int flags, int x, int y);
+extern void DrawObject(int desc, int status);
+extern bool ObjectInvisible(int code);
 
 DLLEXPORT void Renderer_Render(HWND hWnd, const RECT *RectSrc, const RECT *RectDest)
 {
@@ -710,7 +717,7 @@ DLLEXPORT void Renderer_Render(HWND hWnd, const RECT *RectSrc, const RECT *RectD
 	for (int i=object_current; i>=0 && i > object_current-800*6; i-=6)
 		if (GetLong(&ROM[i+2]) == 0)
 		{
-			object_start = i;
+			object_start = i+6;
 			break;
 		}
 
@@ -761,19 +768,7 @@ DLLEXPORT void Renderer_Render(HWND hWnd, const RECT *RectSrc, const RECT *RectD
 		res = glGetUniformLocation(SpriteShader, "water_level");
 		for (int i=0; object_start+i<object_end; i+=6)
 		{
-			if (GetWord(&RAM[0xEB00+(i/6)])&0x80)
-				continue;
-			//word: X
-			//word: AVH0 YYYY YYYY YYYY (A - y check)
-			//byte: id
-			//byte: arg
-			float rx = GetWord(&ROM[object_start+i]) - camerax;
-			float ry = (GetWord(&ROM[object_start+i+2])&0xFFF) - cameray;
-			DrawObject(ROM[(object_start+i+4)^1], // id
-					ROM[(object_start+i+5)^1], // arg
-					(GetWord(&ROM[object_start+i+2])>>13)&3, // vh
-					rx,
-					ry);
+			DrawObject(object_start+i, RAM[(0xEB00+(i/6))^1]);
 		}
 
 		glUseProgram(0);
@@ -868,7 +863,7 @@ DLLEXPORT void Renderer_Render(HWND hWnd, const RECT *RectSrc, const RECT *RectD
 			&& RAM[i+2] == 0
 			&& RAM[i+3] == 0)
 				continue;
-			if (GetLong(&RAM[i]) == 0x1CD8A) // collision switch
+			if (ObjectInvisible(GetLong(&RAM[i])))
 				continue;
 			int flags = RAM[(i+4)^1];
 			if (flags & (1<<6)) // compound

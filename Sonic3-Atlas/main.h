@@ -23,7 +23,7 @@ extern SafeArray<WORD> CRAM;
 
 extern WORD PAL[0x80+0x2000];
 
-extern void DrawFrame(int offset, int frame, int flags, int base, int x, int y);
-extern void DrawSprite(int id, int x, int y, int size);
+extern void DrawFrame(int x, int y, int offset, int frame, int flags, int base);
+extern void DrawSprite(int x, int y, int id, int size);
 
 #endif

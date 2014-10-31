@@ -25,7 +25,7 @@ gui.register(function ()
 	local start = 0;
 	while ( i >= 0 and i > current - 800*6 ) do
 		if (memory.readlong(i+2) == 0) then
-			start = i;
+			start = i+6;
 			break;
 		end
 		i = i - 6;
@@ -50,7 +50,10 @@ gui.register(function ()
 				x = x - camerax;
 				y = y - cameray;
 				--gui.box(x-w/2,y-h/2,x+w/2,y+h/2);
-				gui.text(x,y,string.format("%02X %02X",memory.readbyte(i+4),memory.readbyte(i+5)));
+				gui.text(x,y,string.format("%02X %02X\n%02X",
+					memory.readbyte(i+4),
+					memory.readbyte(i+5),
+					memory.readbyte(0xFFEB00+(i-start)/6)));
 				j = j + 1;
 			--end
 		end
