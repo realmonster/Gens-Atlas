@@ -1,6 +1,5 @@
-
-#include <gl/glew.h>
-#include <gl/wglew.h>
+#include "main.h"
+#include "scrolls.h"
 
 #include <vector>
 #include <algorithm>
@@ -185,17 +184,6 @@ void InitTextures()
 	glGenTextures(1, &RAMTexture);
 }
 
-template <typename T>
-struct SafeArray
-{
-	const T* data;
-	int mask;
-	const T & operator [] (int n) const
-	{
-		return data[n&mask];
-	}
-};
-
 static BYTE current_RAM[0x10000];
 static BYTE current_VRAM[0x10000];
 static WORD current_CRAM[128];
@@ -208,328 +196,11 @@ SafeArray<BYTE> ROM;
 SafeArray<BYTE> RAM;
 SafeArray<BYTE> VRAM;
 SafeArray<WORD> CRAM;
+
 unsigned int *MD_Screen32;
 unsigned long *TAB336;
 
 WORD PAL[0x80+0x2000];
-
-#define HSCROLL (PAL+0x80) 
-#define HSIZE ((BYTE*)(PAL+0x80+0x1000))
-
-void ParallaxScroll(int Heights, int Values)
-{
-	int j = Values;
-	int l = 0;
-	for (int i=Heights; i<Heights+0x50; i+=2)
-	{
-		int v = *(WORD*)&ROM[i];
-		if (v & 0x8000)
-		{
-			// parallax
-			v -= 0x8000;
-			for (int k=0; k<v; ++k)
-			{
-				HSCROLL[l]=*(WORD*)&RAM[j];
-				j+=2;
-				++l;
-				if (l >= 0x1000)
-					break;
-			}
-		}
-		else
-		{
-			for (int k=0; k<v; ++k)
-			{
-				HSCROLL[l]=*(WORD*)&RAM[j];
-				++l;
-				if (l >= 0x1000)
-					break;
-			}
-			j+=2;
-		}
-		if (l >= 0x1000)
-			break;
-	}
-}
-
-void ParallaxSize(int Heights)
-{
-	int l = 0;
-	for (int i=Heights; i<Heights+0x50; i+=2)
-	{
-		int v = *(WORD*)&ROM[i];
-		if (v & 0x8000)
-		{
-			// parallax
-			v -= 0x8000;
-		}
-		int val = (v > 0x1000)?*(WORD*)&RAM[0x8002]:4;
-		for (int k=0; k<v; ++k)
-		{
-			HSIZE[l] = val;
-			++l;
-			if (l >= 0x1000)
-				break;
-		}
-		if (l >= 0x1000)
-			break;
-	}
-}
-
-void AllSize(int Width)
-{
-	for (int i=0; i<0x20*128; ++i)
-	{
-		HSIZE[i] = Width;
-	}
-}
-
-void AngelIslandZoneScroll1()
-{
-	ParallaxScroll(0x23B258,0xA808);
-	ParallaxSize(0x23B258);
-}
-
-void AngelIslandZoneScroll2()
-{
-	ParallaxScroll(0x23BC06,0xA9C0);
-	ParallaxSize(0x23BC06);
-}
-
-void HydrocityScroll1()
-{
-	ParallaxScroll(0x23C590,0xA800);
-	ParallaxSize(0x23C590);
-}
-
-void HydrocityScroll2()
-{
-	ParallaxScroll(0x23C7D2,0xA800);
-	AllSize(4);
-}
-
-void MarbleGardenZoneScroll1()
-{
-	ParallaxScroll(0x23C9F8,0xA800);
-	ParallaxSize(0x23C9F8);
-}
-
-void MarbleGardenZoneScroll2()
-{
-	//EE94, EE95, EEC8, F664
-	//int sign = *(WORD*)&RAM[0xEED2]==8?-1:1;
-	ParallaxScroll(0x23D498,0xA808);
-	ParallaxSize(0x23D498);
-}
-
-void CarnavalNightZoneScroll1()
-{
-	if (*(WORD*)&RAM[0xEEC2] == 4)
-	{
-		for (int l=0; l<0x20*128; ++l)
-		{
-			HSCROLL[l]=*(WORD*)&RAM[0xEE8C];
-		}
-		AllSize(*(WORD*)&RAM[0x8002]);
-	}
-	else
-	{
-		ParallaxScroll(0x520FE,0xA800);
-		ParallaxSize(0x520FE);
-	}
-}
-
-void FlyingBatteryZoneScroll1()
-{
-	if (*(WORD*)&RAM[0xEED6])
-	{
-		// sky
-		ParallaxScroll(0x52D6E,0xA800);
-	}
-	else
-	{
-		// inner
-		ParallaxScroll(0x52D28,0xA800);
-		ParallaxSize(0x52D28);
-	}
-}
-
-void IceCapZoneScroll1()
-{
-	if (*(WORD*)&RAM[0xEEC2]==0x4)
-	{
-		// third part
-		if (*(WORD*)&RAM[0xEEE8])
-		{
-			ParallaxScroll(0x23E246,0xA800);
-			ParallaxSize(0x23E246);
-		}
-		else
-		{
-			ParallaxScroll(0x23E23E,0xA800);
-			ParallaxSize(0x23E23E);
-		}
-	}
-	else if (*(WORD*)&RAM[0xEEC2]!=0x10)
-	{
-		// on top
-		int j = 0xA800;
-		int l = 0;
-		for (int i=0x23DEFA; i<0x23DFFA; i+=2)
-		{
-			int v = *(WORD*)&ROM[i];
-			if (v & 0x8000)
-			{
-				// parallax
-				v -= 0x8000;
-				for (int k=0; k<v; ++k)
-				{
-					PAL[0x80+l]=(*(WORD*)&RAM[j]);
-					j+=2;
-					++l;
-					if (l >= 0x1000)
-						break;
-				}
-			}
-			else
-			{
-				for (int k=0; k<v; ++k)
-				{
-					PAL[0x80+l]=(*(WORD*)&RAM[j]);
-					++l;
-					if (l >= 0x1000)
-						break;
-				}
-				j+=2;
-			}
-			if (l >= 0x1000)
-				break;
-		}
-	}
-	else
-	{
-		// inside
-		for (int l=0; l<0x20*128; ++l)
-		{
-			HSCROLL[l]=*(WORD*)&RAM[0xEE8C];
-			HSIZE[l]=*(WORD*)&RAM[0x8002];
-		}
-	}
-}
-
-void LaunchBaseZoneScroll1()
-{
-	ParallaxScroll(0x5433E,0xA808);
-	AllSize(4);
-	for (int i=0; i<0xD0; ++i)
-		HSIZE[i] = 0xC;
-}
-
-void LaunchBaseZoneScroll2()
-{
-	if (*(WORD*)&RAM[0xEEC2] != 0xC)
-	{
-		ParallaxScroll(0x23EEE0,0xA800);
-		ParallaxSize(0x23EEE0);
-	}
-	else // end of level
-	{
-		ParallaxScroll(0x23EF04,0xA800);
-		ParallaxSize(0x23EF04);
-	}
-}
-
-void MushroomHillZoneScroll1()
-{
-	for (int l=0; l<0x20*128; ++l)
-	{
-		HSCROLL[l]=*(WORD*)&RAM[0xEE8C];
-	}
-	AllSize(*(WORD*)&RAM[0x8002]);
-}
-
-void SandpolisZoneScroll1()
-{
-	ParallaxScroll(0x560DC,0xA800);
-	AllSize(4);
-}
-
-void BonusLevelScroll1()
-{
-	for (int l=0; l<0x20*128; ++l)
-	{
-		HSCROLL[l]=*(WORD*)&RAM[0xEE8C];
-	}
-	AllSize(*(WORD*)&RAM[0x8002]);
-}
-
-void BonusLevelScroll2()
-{
-	ParallaxScroll(0x599BE,0xA800);
-	AllSize(4);
-}
-
-void UpdatePalAndScroll()
-{
-	memcpy(PAL,CRAM.data,0x80*2);
-	switch(*(WORD*)&RAM[0xFE10])
-	{
-		case 0x000:
-			AngelIslandZoneScroll1();
-			break;
-		case 0x001:
-			AngelIslandZoneScroll2();
-			break;
-		case 0x100:
-			HydrocityScroll1();
-			break;
-		case 0x101:
-			HydrocityScroll2();
-			break;
-		case 0x200:
-			MarbleGardenZoneScroll1();
-			break;
-		case 0x201:
-			MarbleGardenZoneScroll2();
-			break;
-		case 0x300:
-		case 0x301:
-			CarnavalNightZoneScroll1();
-			break;
-		case 0x400:
-		case 0x401:
-			FlyingBatteryZoneScroll1();
-			break;
-		case 0x500:
-		case 0x501:
-			IceCapZoneScroll1();
-			break;
-		case 0x600:
-			LaunchBaseZoneScroll1();
-			break;
-		case 0x601:
-			LaunchBaseZoneScroll2();
-			break;
-		case 0x700:
-			MushroomHillZoneScroll1();
-			break;
-		case 0x701:
-			MushroomHillZoneScroll1();
-			break;
-		case 0x800:
-			SandpolisZoneScroll1();
-			break;
-		case 0x1400:
-			BonusLevelScroll1();
-			break;
-		case 0x1500:
-			BonusLevelScroll2();
-			break;
-		default:
-			memset(PAL+0x80,0x1000,0);
-			break;
-	}
-}
 
 DLLEXPORT void Renderer_ROM_Loaded()
 {
@@ -739,7 +410,17 @@ DLLEXPORT void Renderer_Delete()
 
 GLbyte BlitData[1024*1024*3];
 
-void DrawSprite(int id, int x, int y, int size)
+
+// x, y = position from top left corner of camera.
+// id = pccvhnnn nnnnnnnn
+//      p - priority
+//      cc - palette
+//      v h - flips
+//      n - name (tile id)
+// size = 0000hhvv
+//      hh = (horizontal tiles count - 1)
+//      vv = (vertical tiles count - 1)
+void DrawSprite(int x, int y, int id, int size)
 {
 	GLint res = glGetUniformLocation(SpriteShader, "sprite_entry");
 	if (res != -1)
@@ -778,7 +459,15 @@ void DrawSprite(int id, int x, int y, int size)
 	glEnd();
 }
 
-void DrawFrame(int offset, int frame, int flags, int base, int x, int y)
+// x, y = position from top left corner of camera.
+// offset = mappings offset
+// frame = frame from mapping
+// base = pccvhnnn nnnnnnnn
+//      p - priority
+//      cc - palette
+//      v h - flips
+//      n - name (tile id)
+void DrawFrame(int x, int y, int offset, int frame, int flags, int base)
 {
 	int count = 1;
 	if (!(flags&(1<<5)))
@@ -792,9 +481,9 @@ void DrawFrame(int offset, int frame, int flags, int base, int x, int y)
 	for (int i = count-1; i >= 0; --i)
 	{
 		int s = ROM[offset+i*6];
-		DrawSprite(base+*(WORD*)&ROM[offset+i*6+2]^((flags&3)<<11), // sprite id
-					x+((flags&1)?-*(short*)&ROM[offset+i*6+4]-(((s>>2)&3)+1)*8:*(short*)&ROM[offset+i*6+4]), // x
+		DrawSprite( x+((flags&1)?-*(short*)&ROM[offset+i*6+4]-(((s>>2)&3)+1)*8:*(short*)&ROM[offset+i*6+4]), // x
 					y+((flags&2)?-(char)ROM[offset+i*6+1]-(((s)&3)+1)*8:(char)ROM[offset+i*6+1]), // y
+					base+*(WORD*)&ROM[offset+i*6+2]^((flags&3)<<11), // sprite id
 					s); // size = SS
 	}
 }
@@ -1074,11 +763,15 @@ DLLEXPORT void Renderer_Render(HWND hWnd, const RECT *RectSrc, const RECT *RectD
 		{
 			if (GetWord(&RAM[0xEB00+(i/6)])&0x80)
 				continue;
+			//word: X
+			//word: AVH0 YYYY YYYY YYYY (A - y check)
+			//byte: id
+			//byte: arg
 			float rx = GetWord(&ROM[object_start+i]) - camerax;
 			float ry = (GetWord(&ROM[object_start+i+2])&0xFFF) - cameray;
-			DrawObject(ROM[(object_start+i+4)^1],
-					ROM[(object_start+i+5)^1],
-					(GetWord(&ROM[object_start+i+2])>>13)&3,
+			DrawObject(ROM[(object_start+i+4)^1], // id
+					ROM[(object_start+i+5)^1], // arg
+					(GetWord(&ROM[object_start+i+2])>>13)&3, // vh
 					rx,
 					ry);
 		}
@@ -1175,6 +868,8 @@ DLLEXPORT void Renderer_Render(HWND hWnd, const RECT *RectSrc, const RECT *RectD
 			&& RAM[i+2] == 0
 			&& RAM[i+3] == 0)
 				continue;
+			if (GetLong(&RAM[i]) == 0x1CD8A) // collision switch
+				continue;
 			int flags = RAM[(i+4)^1];
 			if (flags & (1<<6)) // compound
 			{
@@ -1182,19 +877,21 @@ DLLEXPORT void Renderer_Render(HWND hWnd, const RECT *RectSrc, const RECT *RectD
 				if (count > 20)
 					count = 20;
 				for (int j=count-1; j>=0; --j)
-					DrawFrame(GetLong(&RAM[i+0xC]), // offset
+					DrawFrame(
+						(*(short*)&RAM[i+0x10])*0-camerax+*(short*)&RAM[i+0x18+j*6], // x
+						(*(short*)&RAM[i+0x14])*0-cameray+*(short*)&RAM[i+0x18+j*6+2], // y
+						GetLong(&RAM[i+0xC]), // offset
 						RAM[i+0x18+j*6+4], // frame
 						flags, // flags
-						*(WORD*)&RAM[i+0xA], // base
-						(*(short*)&RAM[i+0x10])*0-camerax+*(short*)&RAM[i+0x18+j*6],
-						(*(short*)&RAM[i+0x14])*0-cameray+*(short*)&RAM[i+0x18+j*6+2]);
+						*(WORD*)&RAM[i+0xA]); // base
 			}
-			DrawFrame(GetLong(&RAM[i+0xC]), // offset
+			DrawFrame(
+				*(short*)&RAM[i+0x10]-camerax, // x
+				*(short*)&RAM[i+0x14]-cameray, // y
+				GetLong(&RAM[i+0xC]), // offset
 				RAM[(i+0x22)^1], // frame
 				flags, // flags
-				*(WORD*)&RAM[i+0xA], // base
-				*(short*)&RAM[i+0x10]-camerax,
-				*(short*)&RAM[i+0x14]-cameray);
+				*(WORD*)&RAM[i+0xA]); // base
 		}
 		glUseProgram(0);
 	}
