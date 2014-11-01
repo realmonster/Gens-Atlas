@@ -40,6 +40,11 @@ inline int zone()
 	return RAM[0xFE10^1];
 }
 
+inline int zone_and_act()
+{
+	return *(WORD*)&RAM[0xFE10];
+}
+
 typedef void (*object_render)(int desc, int status);
 
 static void DrawDummy(int desc, int mapping, int frame, int base)
@@ -76,7 +81,38 @@ static void obj_monitor(int desc, int status)
 static void obj_rock(int desc, int status)
 {
 	if (!(status & 0x80))
-		DrawDummy(desc, 0x21DCDC, DESC_ARG(desc)>>4, 0x2333);
+	{
+		int map = 0x21DCDC;
+		int base = 0x2333;
+		int frame = (DESC_ARG(desc)>>4)&7;
+		if (zone_and_act() == 1)
+		{
+			map = 0x21DD64;
+			base = 0x42E9;
+		}
+		else if (zone_and_act() == 0x1200)
+		{
+			map = 0x21DDEC;
+			base = 0xE300;
+			frame = 0;
+		}
+		else if (zone_and_act() == 0x900)
+		{
+			map = 0x203D8;
+			base = 0x40D3;
+			frame += 4;
+		}
+		else if (zone_and_act() == 0x901)
+		{
+			map = 0x2047A;
+			base = 0x640D;
+			frame += 4;
+		}
+		int x = DESC_X(desc) - camerax() - (status&0x7F);
+		int y = DESC_Y(desc) - cameray();
+		int flags = DESC_HV(desc);
+		DrawFrame(x,y,map,frame,flags,base);
+	}
 }
 
 static void obj_spring(int desc, int status)
@@ -137,6 +173,48 @@ static void obj_spring(int desc, int status)
 	DrawFrame(x,y,map,frame,flags,base);
 }
 
+static void obj_spikes(int desc, int status)
+{
+	if (status & 0x80) // loaded
+		return;
+	int arg = DESC_ARG(desc);
+	int comp = *(WORD*)&RAM[0xFFE8]; // competition
+	int map = 0x24456;
+	int base = 0x49C;
+	int frame = (arg >> 4);
+	if (zone() == 4)
+		base = 0x200;
+	if ((arg >> 4)>=4)
+		base = 0x494;
+	int x = DESC_X(desc) - camerax();
+	int y = DESC_Y(desc) - cameray();
+	if ((arg&3) == 1 || (arg&3) == 2)
+	{
+		// moving
+		int frame = (*(WORD*)&RAM[0xFE04])&0x7F;
+		int delta;
+		if (frame < 0x40)
+		{
+			if (frame < 4)
+				delta = 8*frame;
+			else
+				delta = 0x20;
+		}
+		else
+		{
+			if (frame < 0x44)
+				delta = 0x20-(8*(frame-0x40));
+			else
+				delta = 0;
+		}
+		if ((arg&3) == 1)
+			y += delta;
+		else
+			x += delta;
+	}
+	DrawFrame(x,y,map,frame,DESC_HV(desc),base);
+}
+
 static object_render objects[0x100] = {
 	static_ring, //  0 Ring
 	obj_monitor, //  1 Monitor
@@ -146,7 +224,7 @@ static object_render objects[0x100] = {
 	obj_rock,    //  5 Rock from AIZ, LRZ and EMZ
 	0,           //  6 Vine which slides down a rope from AIZ 1
 	obj_spring,  //  7 Spring
-	0,           //  8 Spikes
+	obj_spikes,  //  8 Spikes
 	0,           //  9 Tree bark from AIZ 1
 	0,           //  A Rope peg from AIZ 1
 	0,           //  B Ring (unused slot)
