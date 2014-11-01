@@ -6258,6 +6258,15 @@ LRESULT CALLBACK FilesProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		case WM_COMMAND:
 			switch(wParam)
 			{
+				case ID_CHANGE_RENDER:
+					GetDlgItemText(hDlg, IDC_EDIT_RENDER, Str_Tmp2, 1024);
+					strcpy(Str_Tmp, "Sonic3-Atlas.dll"); 
+					DialogsOpen++;
+					if (Change_File_S(Str_Tmp, Str_Tmp2, "Render plugin", "Plugin DLL\0*.dll\0All Files\0*.*\0\0", "dll", hDlg))
+						SetDlgItemText(hDlg, IDC_EDIT_RENDER, Str_Tmp);
+					DialogsOpen--;
+					break;
+
 				case ID_CHANGE_GENESISBIOS:
 					GetDlgItemText(hDlg, IDC_EDIT_GENESISBIOS, Str_Tmp2, 1024);
 					strcpy(Str_Tmp, "genesis.bin"); 
