@@ -78,6 +78,7 @@ static void obj_monitor(int desc, int status)
 	}
 }
 
+// 5
 static void obj_rock(int desc, int status)
 {
 	if (!(status & 0x80))
@@ -115,6 +116,7 @@ static void obj_rock(int desc, int status)
 	}
 }
 
+// 7
 static void obj_spring(int desc, int status)
 {
 	if (status & 0x80) // loaded
@@ -173,6 +175,7 @@ static void obj_spring(int desc, int status)
 	DrawFrame(x,y,map,frame,flags,base);
 }
 
+// 8
 static void obj_spikes(int desc, int status)
 {
 	if (status & 0x80) // loaded
@@ -213,6 +216,77 @@ static void obj_spikes(int desc, int status)
 			x += delta;
 	}
 	DrawFrame(x,y,map,frame,DESC_HV(desc),base);
+}
+
+// 0x51
+static void obj_floatingplatform(int desc, int status)
+{
+	int map = 0x256A2;
+	int base = 0x43F7;
+	if (zone_and_act() == 1)
+		base = 0x4440;
+	else if (zone() == 1)
+	{
+		map = 0x25688;
+		base = 0x441D;
+	}
+	else if (zone() == 2)
+	{
+		map = 0x25654;
+		base = 0x4001;
+	}
+	int x = DESC_X(desc) - camerax();
+	int y = DESC_Y(desc) - cameray();
+	int arg = DESC_ARG(desc)&0xF;
+	int hv = DESC_HV(desc);
+	if (arg == 1)
+	{
+		if (hv & 1)
+			x += 0x40-RAM[0xFE78^1];
+		else
+			x += RAM[0xFE78^1];
+	}
+	else if (arg == 2 || arg == 5)
+	{
+		if (hv & 1)
+			x += 0x80-RAM[0xFE8C^1];
+		else
+			x += RAM[0xFE8C^1];
+	}
+	else if (arg == 3)
+	{
+		if (hv & 1)
+			y -= 0x40-RAM[0xFE78^1];
+		else
+			y -= RAM[0xFE78^1];
+	}
+	else if (arg == 4)
+	{
+		if (hv & 1)
+			y -= 0x80-RAM[0xFE8C^1];
+		else
+			y -= RAM[0xFE8C^1];
+	}
+	else if (arg == 6)
+	{
+		if (hv & 1)
+			x += 0x80-(0x80-RAM[0xFE8C^1]);
+		else
+			x += (0x80-RAM[0xFE8C^1]);
+	}
+	else if (arg == 7)
+	{
+		if (status & 0x80) // loaded
+			return;
+	}
+	if (arg == 5 || arg == 6)
+	{
+		if (hv & 1)
+			y -= 0x40-(RAM[0xFE8C^1]>>1);
+		else
+			y -= (RAM[0xFE8C^1]>>1);
+	}
+	DrawFrame(x,y,map,0,hv,base);
 }
 
 static object_render objects[0x100] = {
@@ -296,6 +370,22 @@ static object_render objects[0x100] = {
 	0,           // 4D
 	0,           // 4E
 	0,           // 4F
+	0,           // 50
+	obj_floatingplatform, // 51
+	0,           // 52
+	0,           // 53
+	0,           // 54
+	0,           // 55
+	0,           // 56
+	0,           // 57
+	0,           // 58
+	0,           // 59
+	0,           // 5A
+	0,           // 5B
+	0,           // 5C
+	0,           // 5D
+	0,           // 5E
+	0,           // 5F
 };
 
 // desc = rom address
