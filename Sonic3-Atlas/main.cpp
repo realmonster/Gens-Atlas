@@ -41,6 +41,7 @@ struct vertex
 {
 	vec3 position;
 	vec3 uvw;
+	GLint water_level;
 };
 
 std::vector<vertex> sprites_vertex;
@@ -65,11 +66,11 @@ void DrawVertexBuffer(const std::vector<vertex> &buff)
 
 	glEnableVertexAttribArray(0);
 	glEnableVertexAttribArray(1);
+	glEnableVertexAttribArray(2);
 
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vertex), (GLvoid*)0);
 	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(vertex), (GLvoid*)offsetof(vertex,uvw));
-
-	glBindBuffer(GL_ARRAY_BUFFER, buffer);
+	glVertexAttribPointer(2, 1, GL_INT, GL_FALSE, sizeof(vertex), (GLvoid*)offsetof(vertex,water_level));
 
 	glDrawArrays(GL_TRIANGLES, 0, buff.size());
 
@@ -77,17 +78,18 @@ void DrawVertexBuffer(const std::vector<vertex> &buff)
 
 	glDisableVertexAttribArray(0);
 	glDisableVertexAttribArray(1);
+	glDisableVertexAttribArray(2);
 
 	glDeleteBuffers(1, &buffer);
 }
 
-void DrawRect(int x, int y, int w, int h, int sprite_id)
+void DrawRect(int x, int y, int w, int h, int sprite_id, int water_level)
 {
 	vertex v[4] = {
-		{x  ,y  ,0,0,0,sprite_id},
-		{x+w,y  ,0,w,0,sprite_id},
-		{x  ,y+h,0,0,h,sprite_id},
-		{x+w,y+h,0,w,h,sprite_id}
+		{x  ,y  ,0,0,0,sprite_id,water_level},
+		{x+w,y  ,0,w,0,sprite_id,water_level},
+		{x  ,y+h,0,0,h,sprite_id,water_level},
+		{x+w,y+h,0,w,h,sprite_id,water_level}
 	};
 	DrawRect(v[0],v[2],v[3],v[1]);
 }
@@ -150,6 +152,7 @@ GLint CompileProgram(GLuint program, GLuint vertex, GLuint fragment)
 
 	glBindAttribLocation(program, 0, "Vertex");
 	glBindAttribLocation(program, 1, "TexCoord");
+	glBindAttribLocation(program, 2, "water_level");
 
 	glLinkProgram(program);
 
@@ -451,8 +454,8 @@ DLLEXPORT LPCSTR Renderer_Init(HWND hWnd,unsigned int* _MD_Screen32,unsigned lon
 
 	std::vector<GLchar> log;
 	std::vector<GLchar> log1;
-	MainShader = MakeProgram("vert.glsl", "frag.glsl", &log);
-	SpriteShader = MakeProgram("vert.glsl", "sprite.glsl", &log1);
+	MainShader = MakeProgram("default.v", "background.f", &log);
+	SpriteShader = MakeProgram("default.v", "sprite.f", &log1);
 	log.insert(log.end(), log1.begin(), log1.end());
 	log.push_back('\0');
 	SetWindowText(ShaderLogHwnd, log.data());
@@ -495,25 +498,14 @@ GLbyte BlitData[1024*1024*3];
 //      vv = (vertical tiles count - 1)
 void DrawSprite(int x, int y, int id, int size)
 {
-	/*GLint res = glGetUniformLocation(SpriteShader, "sprite_entry");
-	if (res != -1)
-	{
-		glUniform1i(res, id|(size<<16)); //Texture unit 0 is for base images.
-	}*/
-
-	/*GLint res = glGetUniformLocation(SpriteShader, "water_level");
-	if (res != -1)
-	{
-		int water_level = 0x100;
-		if (RAM[0xF730^1] != 0)
-			water_level = *(WORD*)&RAM[0xF646]-*(WORD*)&RAM[0xEE7C]-y;
-		glUniform1i(res, water_level); //Texture unit 0 is for base images.
-	}*/
+	int water_level = 0x100;
+	if (RAM[0xF730^1] != 0)
+		water_level = *(WORD*)&RAM[0xF646]-*(WORD*)&RAM[0xEE7C]-y;
 
 	float sw = (((size>>2)&3)+1)*8;
 	float sh = (((size)&3)+1)*8;
 
-	DrawRect(x,y,sw,sh,id|(size<<16));
+	DrawRect(x,y,sw,sh,id|(size<<16),water_level);
 }
 
 // x, y = position from top left corner of camera.
@@ -747,14 +739,10 @@ DLLEXPORT void Renderer_Render(HWND hWnd, const RECT *RectSrc, const RECT *RectD
 			//	continue;
 			//if (ry < 0 || ry > h)
 			//	continue;
-			if (res != -1)
-			{
-				int water_level = 0x100;
-				if (RAM[0xF730^1] != 0)
-					water_level = *(WORD*)&RAM[0xF646]-*(WORD*)&RAM[0xEE7C]-(ry-rh);
-				glUniform1i(res, water_level);
-			}
-			DrawRect(rx-rw,ry-rh,rw*2,rh*2,se);
+			int water_level = 0x100;
+			if (RAM[0xF730^1] != 0)
+				water_level = *(WORD*)&RAM[0xF646]-*(WORD*)&RAM[0xEE7C]-(ry-rh);
+			DrawRect(rx-rw,ry-rh,rw*2,rh*2,se,water_level);
 		}
 
 		DrawVertexBuffer(sprites_vertex);

@@ -85,15 +85,9 @@
     <ClInclude Include="scrolls.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\Output\frag.glsl">
-      <FileType>Document</FileType>
-    </None>
-    <None Include="..\Output\sprite.glsl">
-      <FileType>Document</FileType>
-    </None>
-    <None Include="..\Output\vert.glsl">
-      <FileType>Document</FileType>
-    </None>
+    <None Include="..\Output\background.f" />
+    <None Include="..\Output\default.v" />
+    <None Include="..\Output\sprite.f" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

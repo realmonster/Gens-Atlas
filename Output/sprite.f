@@ -7,7 +7,7 @@ precision highp float; // needed only for version 1.30
 
 uniform isamplerBuffer RAM;
 uniform isamplerBuffer VRAM;
-uniform int water_level;
+in float water_level;
 
 in vec3 in_Position;
 out vec4 out_Color;

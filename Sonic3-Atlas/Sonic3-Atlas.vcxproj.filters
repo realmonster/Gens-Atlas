@@ -37,13 +37,13 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\Output\frag.glsl">
+    <None Include="..\Output\background.f">
       <Filter>GLSL</Filter>
     </None>
-    <None Include="..\Output\sprite.glsl">
+    <None Include="..\Output\default.v">
       <Filter>GLSL</Filter>
     </None>
-    <None Include="..\Output\vert.glsl">
+    <None Include="..\Output\sprite.f">
       <Filter>GLSL</Filter>
     </None>
   </ItemGroup>

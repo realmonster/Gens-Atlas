@@ -91,13 +91,13 @@ vec4 background(int id, int x, int y)
 	int w = _texelFetch(RAM, 0x8000+id*2+1).r;
 	int h = _texelFetch(RAM, 0x8000+id*2+5).r;
 	if (y < 0)
-		y = (y%(h*128))+(h*128);
+		y = y-(y/(h*128))+(h*128);//(y%(h*128))+(h*128);
 	else
 		y = y%(h*128);
 	if (id == 0)
 	{
 	if (x < 0)
-		x = (x%(w*128))+(w*128);
+		x = x-(x/(w*128))+(w*128);//(x%(w*128))+(w*128);
 	else
 		x = x%(w*128);
 	}
@@ -108,7 +108,7 @@ vec4 background(int id, int x, int y)
 		w = _texelFetch(PAL,0x2100+y).r;
 		//x -= -30;//128+58;
 		if (x < 0)
-			x = (x%(w*128))+(w*128);
+			x =  x-(x/(w*128))+(w*128);//(x%(w*128))+(w*128);
 		else
 			x = x%(w*128);
 		/*if (x < 0)
