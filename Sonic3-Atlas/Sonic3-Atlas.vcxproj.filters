@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="GLSL">
+      <UniqueIdentifier>{f2e202b4-5499-4f22-b1b3-ca8d72fcd760}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -32,5 +35,16 @@
     <ClInclude Include="scrolls.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\Output\frag.glsl">
+      <Filter>GLSL</Filter>
+    </None>
+    <None Include="..\Output\sprite.glsl">
+      <Filter>GLSL</Filter>
+    </None>
+    <None Include="..\Output\vert.glsl">
+      <Filter>GLSL</Filter>
+    </None>
   </ItemGroup>
 </Project>

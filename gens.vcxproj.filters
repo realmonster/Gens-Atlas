@@ -58,15 +58,6 @@
     <None Include="resource\lua.ico">
       <Filter>Resources</Filter>
     </None>
-    <None Include="Output\frag.glsl">
-      <Filter>GLSL</Filter>
-    </None>
-    <None Include="Output\sprite.glsl">
-      <Filter>GLSL</Filter>
-    </None>
-    <None Include="Output\vert.glsl">
-      <Filter>GLSL</Filter>
-    </None>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Sources">
@@ -83,9 +74,6 @@
     </Filter>
     <Filter Include="Sources\mp3_dec">
       <UniqueIdentifier>{e62b4e99-9812-4c6a-b6c7-49107869b13b}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="GLSL">
-      <UniqueIdentifier>{6dff899d-dce4-47f2-9f1f-6662fc76f1fc}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

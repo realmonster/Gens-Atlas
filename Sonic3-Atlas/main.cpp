@@ -23,6 +23,75 @@ GLuint VRAMBuffer;
 GLuint RAMTexture;
 GLuint RAMBuffer; 
 
+
+union vec3
+{
+	GLfloat d[3];
+	struct
+	{
+		GLfloat r,g,b;
+	};
+	struct
+	{
+		GLfloat x,y,z;
+	};
+};
+
+struct vertex
+{
+	vec3 position;
+	vec3 uvw;
+};
+
+std::vector<vertex> sprites_vertex;
+
+void DrawRect(vertex &v1, vertex &v2, vertex &v3, vertex &v4)
+{
+	sprites_vertex.push_back(v1);
+	sprites_vertex.push_back(v2);
+	sprites_vertex.push_back(v3);
+	sprites_vertex.push_back(v1);
+	sprites_vertex.push_back(v3);
+	sprites_vertex.push_back(v4);
+}
+
+void DrawVertexBuffer(const std::vector<vertex> &buff)
+{
+	GLuint buffer;
+	glGenBuffers(1, &buffer);
+
+	glBindBuffer(GL_ARRAY_BUFFER, buffer);
+	glBufferData(GL_ARRAY_BUFFER, buff.size()*sizeof(vertex), &buff[0], GL_STATIC_DRAW);
+
+	glEnableVertexAttribArray(0);
+	glEnableVertexAttribArray(1);
+
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vertex), (GLvoid*)0);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(vertex), (GLvoid*)offsetof(vertex,uvw));
+
+	glBindBuffer(GL_ARRAY_BUFFER, buffer);
+
+	glDrawArrays(GL_TRIANGLES, 0, buff.size());
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	glDisableVertexAttribArray(0);
+	glDisableVertexAttribArray(1);
+
+	glDeleteBuffers(1, &buffer);
+}
+
+void DrawRect(int x, int y, int w, int h, int sprite_id)
+{
+	vertex v[4] = {
+		{x  ,y  ,0,0,0,sprite_id},
+		{x+w,y  ,0,w,0,sprite_id},
+		{x  ,y+h,0,0,h,sprite_id},
+		{x+w,y+h,0,w,h,sprite_id}
+	};
+	DrawRect(v[0],v[2],v[3],v[1]);
+}
+
 GLint CompileShader(GLuint shader, LPCSTR path)
 {
 	FILE *f = fopen(path, "rb");
@@ -78,6 +147,9 @@ GLint CompileProgram(GLuint program, GLuint vertex, GLuint fragment)
 {
 	glAttachShader(program, vertex);
 	glAttachShader(program, fragment);
+
+	glBindAttribLocation(program, 0, "Vertex");
+	glBindAttribLocation(program, 1, "TexCoord");
 
 	glLinkProgram(program);
 
@@ -385,6 +457,7 @@ DLLEXPORT LPCSTR Renderer_Init(HWND hWnd,unsigned int* _MD_Screen32,unsigned lon
 	log.push_back('\0');
 	SetWindowText(ShaderLogHwnd, log.data());
 	InitTextures();
+	Renderer_ROM_Loaded();
 	ReleaseDC(hWnd, dc);
 	return NULL;
 }
@@ -422,41 +495,25 @@ GLbyte BlitData[1024*1024*3];
 //      vv = (vertical tiles count - 1)
 void DrawSprite(int x, int y, int id, int size)
 {
-	GLint res = glGetUniformLocation(SpriteShader, "sprite_entry");
+	/*GLint res = glGetUniformLocation(SpriteShader, "sprite_entry");
 	if (res != -1)
 	{
 		glUniform1i(res, id|(size<<16)); //Texture unit 0 is for base images.
-	}
+	}*/
 
-	res = glGetUniformLocation(SpriteShader, "water_level");
+	/*GLint res = glGetUniformLocation(SpriteShader, "water_level");
 	if (res != -1)
 	{
 		int water_level = 0x100;
 		if (RAM[0xF730^1] != 0)
 			water_level = *(WORD*)&RAM[0xF646]-*(WORD*)&RAM[0xEE7C]-y;
 		glUniform1i(res, water_level); //Texture unit 0 is for base images.
-	}
+	}*/
 
 	float sw = (((size>>2)&3)+1)*8;
 	float sh = (((size)&3)+1)*8;
 
-	glBegin(GL_TRIANGLES);
-
-	glColor3f (0.0f, 0.0f, 0.0f);
-	glVertex2f(x   , y   );
-	glColor3f (0.0f,   sh, 0.0f);
-	glVertex2f(x   , y+sh);
-	glColor3f (  sw,   sh, 0.0f);
-	glVertex2f(x+sw, y+sh);
-
-	glColor3f (0.0f, 0.0f, 0.0f);
-	glVertex2f(x   , y   );
-	glColor3f (  sw,   sh, 0.0f);
-	glVertex2f(x+sw, y+sh);
-	glColor3f (  sw, 0.0f, 0.0f);
-	glVertex2f(x+sw, y   );
-
-	glEnd();
+	DrawRect(x,y,sw,sh,id|(size<<16));
 }
 
 // x, y = position from top left corner of camera.
@@ -524,19 +581,16 @@ DLLEXPORT void Renderer_Render(HWND hWnd, const RECT *RectSrc, const RECT *RectD
 			*(d++) = (GLbyte)((c)&0xFF);
 		}
 	}
-
 	glBindTexture(GL_TEXTURE_2D, glScreenTexture);
 	glTexImage2D(GL_TEXTURE_2D,0,GL_RGB,320,224,0,GL_RGB,GL_UNSIGNED_BYTE,BlitData);
 	glTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );
 
-	// when texture area is small, bilinear filter the closest MIP map
+	// when texture area is small, nearest filter
 	glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
 
-	// when texture area is large, bilinear filter the first MIP map
+	// when texture area is large, nearest filter
 	glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
 
-	// if wrap is true, the texture wraps over at the edges (repeat)
-	//       ... false, the texture ends at the edges (clamp)
 	glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP );
 	glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP );
 
@@ -555,6 +609,19 @@ DLLEXPORT void Renderer_Render(HWND hWnd, const RECT *RectSrc, const RECT *RectD
 	//glActiveTexture(GL_TEXTURE0);
 
 	glUseProgram(MainShader);
+
+	GLfloat ModelViewProjection[] = {
+		2.0/(RectDest->right-RectDest->left), 0.0, 0.0, 0.0,
+		0.0, -2.0/(RectDest->bottom-RectDest->top), 0.0, 0.0,
+		0.0, 0.0, 1.0, 0.0,
+		-double(RectSrc->right-RectSrc->left)/(RectDest->right-RectDest->left),double(RectSrc->bottom-RectSrc->top)/(RectDest->bottom-RectDest->top),0.0,1.0};///*(WORD*)&RAM[0xFE04]/400.0, 0.0, 0.0, 1.0};
+
+	GLint matrix = glGetUniformLocation(MainShader, "ModelViewProjectionMatrix");
+	if (matrix != -1)
+	{
+		glUniformMatrix4fv(matrix, 1, GL_FALSE, ModelViewProjection);
+	}
+
 	glEnable(GL_BLEND);
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LEQUAL);
@@ -594,21 +661,15 @@ DLLEXPORT void Renderer_Render(HWND hWnd, const RECT *RectSrc, const RECT *RectD
 	// Foreground, Background layers
 	int w = RectDest->right-RectDest->left;
 	int h = RectDest->bottom-RectDest->top;
-	glBegin(GL_TRIANGLES);
-	glColor3f(-20000.0f, -20000.0f, 0.0f);
-	glVertex2i(-20000,  -20000);
-	glColor3f(-20000.0f, 20000.0f, 0.0f);
-	glVertex2i(-20000, 20000);
-	glColor3f(20000, 20000.0f, 0.0f);
-	glVertex2i(20000, 20000);
 
-	glColor3f(-20000.0f, -20000.0f, 0.0f);
-	glVertex2i(-20000,  -20000);
-	glColor3f(20000.0f, 20000.0f, 0.0f);
-	glVertex2i(20000, 20000);
-	glColor3f(20000.0f, -20000.0f, 0.0f);
-	glVertex2i(20000, -20000);
-	glEnd();
+	sprites_vertex.clear();
+	vertex v1 = {-20000, -20000, 0.0, -20000, -20000, 0.0};
+	vertex v2 = {-20000,  20000, 0.0, -20000,  20000, 0.0};
+	vertex v3 = { 20000,  20000, 0.0,  20000,  20000, 0.0};
+	vertex v4 = { 20000, -20000, 0.0,  20000, -20000, 0.0};
+	DrawRect(v1,v2,v3,v4);
+
+	DrawVertexBuffer(sprites_vertex);
 
 	glUseProgram(0);
 
@@ -636,25 +697,23 @@ DLLEXPORT void Renderer_Render(HWND hWnd, const RECT *RectSrc, const RECT *RectD
 		int camerax = GetWord(&RAM[0xEE78]);
 		int cameray = GetWord(&RAM[0xEE7C]);
 
+		sprites_vertex.clear();
 		glUseProgram(SpriteShader);
-		GLint res = glGetUniformLocation(SpriteShader, "sprite_entry");
-		if (res != -1)
+		int se;
+		switch (RAM[0xFEB3^1])
 		{
-			switch (RAM[0xFEB3^1])
-			{
-				case 0:
-					glUniform1i(res, (0x26BC+0)|(0x50000));
-					break;
-				case 1:
-					glUniform1i(res, (0x26BC+4)|(0x50000));
-					break;
-				case 2:
-					glUniform1i(res, (0x26BC+8)|(0x10000));
-					break;
-				case 3:
-					glUniform1i(res, (0x26BC+4)|(0x50800));
-					break;
-			}
+			case 0:
+				se = (0x26BC+0)|(0x50000);
+				break;
+			case 1:
+				se = (0x26BC+4)|(0x50000);
+				break;
+			case 2:
+				se = (0x26BC+8)|(0x10000);
+				break;
+			case 3:
+				se = (0x26BC+4)|(0x50800);
+				break;
 		}
 		res = glGetUniformLocation(SpriteShader, "RAM");
 		if (res != -1)
@@ -665,6 +724,12 @@ DLLEXPORT void Renderer_Render(HWND hWnd, const RECT *RectSrc, const RECT *RectD
 		if (res != -1)
 		{
 			glUniform1i(res, 2); //Texture unit 0 is for base images.
+		}
+
+		matrix = glGetUniformLocation(SpriteShader, "ModelViewProjectionMatrix");
+		if (matrix != -1)
+		{
+			glUniformMatrix4fv(matrix, 1, GL_FALSE, ModelViewProjection);
 		}
 		
 		res = glGetUniformLocation(SpriteShader, "water_level");
@@ -689,25 +754,10 @@ DLLEXPORT void Renderer_Render(HWND hWnd, const RECT *RectSrc, const RECT *RectD
 					water_level = *(WORD*)&RAM[0xF646]-*(WORD*)&RAM[0xEE7C]-(ry-rh);
 				glUniform1i(res, water_level);
 			}
-			glBegin(GL_TRIANGLES);
-
-			glColor3f(0.0f, 0.0f, 0.0f);
-			glVertex2f(rx-rw, ry-rh);
-			glColor3f(0.0f, 16.0f, 0.0f);
-			glVertex2f(rx-rw, ry+rh);
-			glColor3f(rw*2, 16.0f, 0.0f);
-			glVertex2f(rx+rw, ry+rh);
-
-			glColor3f(0.0f, 0.0f, 0.0f);
-			glVertex2f(rx-rw, ry-rh);
-			glColor3f(rw*2, 16.0f, 0.0f);
-			glVertex2f(rx+rw, ry+rh);
-			glColor3f(rw*2, 0.0f, 0.0f);
-			glVertex2f(rx+rw, ry-rh);
-
-			glEnd();
+			DrawRect(rx-rw,ry-rh,rw*2,rh*2,se);
 		}
 
+		DrawVertexBuffer(sprites_vertex);
 		glUseProgram(0);
 	}
 
@@ -734,26 +784,9 @@ DLLEXPORT void Renderer_Render(HWND hWnd, const RECT *RectSrc, const RECT *RectD
 		int camerax = GetWord(&RAM[0xEE78]);
 		int cameray = GetWord(&RAM[0xEE7C]);
 
+		sprites_vertex.clear();
 		glUseProgram(SpriteShader);
-		GLint res = glGetUniformLocation(SpriteShader, "sprite_entry");
-		if (res != -1)
-		{
-			switch (RAM[0xFEB3^1])
-			{
-				case 0:
-					glUniform1i(res, (0x26BC+0)|(0x50000));
-					break;
-				case 1:
-					glUniform1i(res, (0x26BC+4)|(0x50000));
-					break;
-				case 2:
-					glUniform1i(res, (0x26BC+8)|(0x10000));
-					break;
-				case 3:
-					glUniform1i(res, (0x26BC+4)|(0x50800));
-					break;
-			}
-		}
+
 		res = glGetUniformLocation(SpriteShader, "RAM");
 		if (res != -1)
 		{
@@ -771,6 +804,7 @@ DLLEXPORT void Renderer_Render(HWND hWnd, const RECT *RectSrc, const RECT *RectD
 			DrawObject(object_start+i, RAM[(0xEB00+(i/6))^1]);
 		}
 
+		DrawVertexBuffer(sprites_vertex);
 		glUseProgram(0);
 	}
 
@@ -832,6 +866,7 @@ DLLEXPORT void Renderer_Render(HWND hWnd, const RECT *RectSrc, const RECT *RectD
 
 	// Objects in Status Table
 	{
+		sprites_vertex.clear();
 		glUseProgram(SpriteShader);
 
 		res = glGetUniformLocation(SpriteShader, "RAM");
@@ -888,6 +923,7 @@ DLLEXPORT void Renderer_Render(HWND hWnd, const RECT *RectSrc, const RECT *RectD
 				flags, // flags
 				*(WORD*)&RAM[i+0xA]); // base
 		}
+		DrawVertexBuffer(sprites_vertex);
 		glUseProgram(0);
 	}
 

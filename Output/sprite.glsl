@@ -7,7 +7,6 @@ precision highp float; // needed only for version 1.30
 
 uniform isamplerBuffer RAM;
 uniform isamplerBuffer VRAM;
-uniform int sprite_entry;
 uniform int water_level;
 
 in vec3 in_Position;
@@ -61,7 +60,7 @@ vec4 getTile(int id, int x, int y)
 
 void main(void)
 {
-	int se = sprite_entry;
+	int se = int(in_Position.z); // sprite_entry;
 	int hhvv = se >> 16;
 	int hh = (hhvv >> 2)+1;
 	int vv = (hhvv & 0x3)+1;
