@@ -142,6 +142,7 @@ HACCEL hAccelTable = NULL;
 WNDCLASS WndClass;
 HWND HWnd;
 HMENU Gens_Menu;
+HMENU Context_Menu;
 int Gens_Menu_Width = 0; // in pixels
 HWND RamSearchHWnd = NULL; // modeless dialog
 HWND RamWatchHWnd = NULL; // modeless dialog
@@ -283,8 +284,7 @@ void DoMovieSplice();
 
 int Set_Render(HWND hWnd, int Full, int Num, int Force);
 HMENU Build_Main_Menu(void);
-
-
+HMENU Build_Context_Menu(void);
 
 void ResetResults()
 {
@@ -2875,6 +2875,12 @@ long PASCAL WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				while (ShowCursor(true) < 0);
 				while (ShowCursor(false) >= 0);
 			}
+			else
+			{
+				Clear_Sound_Buffer();
+				Build_Context_Menu();
+				TrackPopupMenu(Context_Menu, TPM_LEFTALIGN | TPM_TOPALIGN, point.x, point.y, NULL, hWnd, NULL);
+			}
 			break;
 
 		case WM_CREATE:
@@ -2930,6 +2936,14 @@ long PASCAL WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				   command-ID_FILES_OPENRECENTROM0 < MAX_RECENT_ROMS)
 				{
 					GensLoadRom(Recent_Rom[command - ID_FILES_OPENRECENTROM0]);
+					return 0;
+				}
+
+				if(command >= ID_TOOLS_OPENRECENTMOVIE0 &&
+				   command <= ID_TOOLS_OPENRECENTMOVIEMAX &&
+				   command-ID_TOOLS_OPENRECENTMOVIE0 < MAX_RECENT_MOVIES)
+				{
+					GensPlayMovie(Recent_Movie[command - ID_TOOLS_OPENRECENTMOVIE0]);
 					return 0;
 				}
 
@@ -4879,6 +4893,95 @@ int Build_Language_String(void)
 	return(0);	
 }
 
+HMENU Build_Context_Menu(void)
+{
+	DestroyMenu(Context_Menu);
+	Build_Language_String();
+
+	HMENU ContextMenu = CreatePopupMenu();
+	HMENU GraphicsSize = CreatePopupMenu();
+	int i = 0;
+	unsigned int Flags = MF_BYPOSITION | MF_STRING;
+
+	if (!Game)
+	{
+		MENU_L(ContextMenu, i++, Flags,
+			ID_FILES_OPENRECENTROM0, "Load Last ROM", "", "&Load Last ROM");
+		MENU_L(ContextMenu, i++, Flags,
+			ID_FILES_OPENROM, "Open ROM...", "", "&Open ROM...");
+		MENU_L(ContextMenu, i++, Flags | MF_POPUP,
+			(UINT)GraphicsSize, "Window Size", "", "&Window Size");
+	}
+	else
+	{
+		if (!MainMovie.Status)
+		{
+			MENU_L(ContextMenu, i++, Flags,
+				ID_TOOLS_OPENRECENTMOVIE0, "Load Last Movie", "", "&Load Last Movie");
+			MENU_L(ContextMenu, i++, Flags,
+				ID_PLAY_MOVIE, "Open Movie...", "", "&Open Movie...");
+			MENU_L(ContextMenu,i++,Flags,
+				ID_RECORD_MOVIE,"Record New Movie...", "", "Record &New Movie...");
+
+			InsertMenu(ContextMenu, i++, MF_SEPARATOR, NULL, NULL);
+
+			MENU_L(ContextMenu, i++, Flags,
+				ID_FILES_OPENROM, "Open ROM...", "", "&Open ROM...");
+		}
+		else
+		{
+			MENU_L(ContextMenu, i++, Flags,
+				ID_PLAY_FROM_START, "Watch Movie From Beginning", "", "&Watch Movie From Beginning");
+			MENU_L(ContextMenu, i++, Flags,
+				ID_RESUME_RECORD, "Resume Record from Now","","&Resume Record from Now");
+			MENU_L(ContextMenu, i++, Flags | ((MainMovie.File !=  NULL) ? MF_ENABLED : MF_DISABLED | MF_GRAYED),
+				ID_STOP_MOVIE, "Stop Movie","","&Stop Movie");
+			MENU_L(ContextMenu,i++,Flags | ((MainMovie.Status==MOVIE_RECORDING) ? MF_CHECKED : MF_UNCHECKED),
+				ID_RECORD_MOVIE,"Record New Movie...", "", "Record &New Movie...");
+
+			InsertMenu(ContextMenu, i++, MF_SEPARATOR, NULL, NULL);
+
+			MENU_L(ContextMenu, i++, Flags,
+				ID_FILES_OPENROM, "Open ROM...", "", "&Open ROM...");
+			MENU_L(ContextMenu, i++, Flags,
+					ID_PLAY_MOVIE, "Open Movie...", "", "&Open Movie...");
+		}
+
+		InsertMenu(ContextMenu, i++, MF_SEPARATOR, NULL, NULL);
+
+		MENU_L(ContextMenu, i++, Flags,
+			ID_LUA_OPENRECENTSCRIPT0,  "Load Last Lua", "", "&Load Last Lua");
+		MENU_L(ContextMenu, i++, Flags,
+			IDC_NEW_LUA_SCRIPT, "Open Lua...", "", "&Open Lua...");
+
+		InsertMenu(ContextMenu, i++, MF_SEPARATOR, NULL, NULL);
+
+		MENU_L(ContextMenu, i++, Flags,
+			ID_EMULATION_PAUSED, Paused ? "Unpause Emulation" : "Pause Emulation", "", Paused ? "&Unpause Emulation" : "&Pause Emulation");
+		MENU_L(ContextMenu, i++, Flags | MF_POPUP,
+			(UINT)GraphicsSize, "Window Size", "", "&Window Size");
+		MENU_L(ContextMenu, i++, Flags,
+			ID_CPU_RESET, "Hard Reset", "\tCtrl+Shift+R", "&Hard Reset");			
+		MENU_L(ContextMenu, i++, Flags,
+			ID_GRAPHICS_AVI, AVIRecording ? "Stop AVI Dump" : "Start AVI Dump...", "", AVIRecording ? "&Stop AVI Dump" : "&Start AVI Dump...");
+	}
+
+	// SIZE //
+
+	i = 0;
+
+	MENU_L(GraphicsSize, i++, MF_BYPOSITION | ((ScaleFactor == 1.0) ? MF_CHECKED : MF_UNCHECKED),
+		ID_GRAPHICS_SIZE_1X, "1x", "", "&1x");
+	MENU_L(GraphicsSize, i++, MF_BYPOSITION | ((ScaleFactor == 2.0) ? MF_CHECKED : MF_UNCHECKED),
+		ID_GRAPHICS_SIZE_2X, "2x", "", "&2x");
+	MENU_L(GraphicsSize, i++, MF_BYPOSITION | ((ScaleFactor == 3.0) ? MF_CHECKED : MF_UNCHECKED),
+		ID_GRAPHICS_SIZE_3X, "3x", "", "&3x");
+	MENU_L(GraphicsSize, i++, MF_BYPOSITION | ((ScaleFactor == 4.0) ? MF_CHECKED : MF_UNCHECKED),
+		ID_GRAPHICS_SIZE_4X, "4x", "", "4x");
+
+	Context_Menu = ContextMenu;
+	return (Context_Menu);
+}
 
 HMENU Build_Main_Menu(void)
 {
@@ -4918,6 +5021,7 @@ HMENU Build_Main_Menu(void)
 	HMENU OptionsSRAMSize;
 	HMENU Tools_Movies; //Upth-Add - Submenu of TAS_Tools
 	HMENU Movies_Tracks; //Upth-Add - submenu of Tas_Tools -> Tools_Movies
+	HMENU MoviesHistory;
 	HMENU Tools_AVI;    //Upth-Add - Submenu of TAS_Tools
 	HMENU Tools_Trace;    //Upth-Add - Submenu of TAS_Tools
 	HMENU Lua_Script;
@@ -4948,6 +5052,7 @@ HMENU Build_Main_Menu(void)
 	FilesSaveState = CreatePopupMenu();
 	FilesLoadState = CreatePopupMenu();
 	FilesHistory = CreatePopupMenu();
+	MoviesHistory = CreatePopupMenu();
 	GraphicsRender = CreatePopupMenu();
 	GraphicsSize = CreatePopupMenu();
 	GraphicsLayers = CreatePopupMenu(); //Nitsuja added this
@@ -5459,6 +5564,15 @@ HMENU Build_Main_Menu(void)
 	MENU_L(TAS_Tools,i++,Flags,ID_Z80_DEBUG_WINDOW,"z80 Debug","","z80 Debug");
 	//Upth-Add - Menu Tools_Movies
 	i = 0;
+
+	if (strcmp(Recent_Movie[0], ""))
+	{
+		MENU_L(Tools_Movies, i++, MF_BYPOSITION | MF_POPUP | MF_STRING,
+			(UINT)MoviesHistory, "Movie History", "", "&Movie History");
+
+		InsertMenu(Tools_Movies, i++, MF_SEPARATOR, NULL, NULL);
+	}
+
 	MENU_L(Tools_Movies,i++,Flags | ((MainMovie.Status==MOVIE_PLAYING) ? MF_CHECKED : MF_UNCHECKED),ID_PLAY_MOVIE,"Play Movie or Resume record from savestate","","&Play Movie" /*" or Resume record from savestate"*/); //Modif
 	MENU_L(Tools_Movies,i++,Flags | ((MainMovie.Status) ? MF_ENABLED : MF_DISABLED | MF_GRAYED),ID_PLAY_FROM_START,"Watch From Beginning","","&Watch From Beginning"); //Modif N.
 	InsertMenu(Tools_Movies, i++, MF_SEPARATOR, NULL, NULL);
@@ -5470,6 +5584,28 @@ HMENU Build_Main_Menu(void)
 	MENU_L(Tools_Movies,i++, MF_BYPOSITION | MF_POPUP | MF_STRING| (MainMovie.Status ? MF_ENABLED : (MF_DISABLED | MF_GRAYED)), (UINT)Movies_Tracks, "Tracks", "", "&Tracks"); //Modif
 	InsertMenu(Tools_Movies, i++, MF_SEPARATOR, NULL, NULL);
 	MENU_L(Tools_Movies,i++,((MainMovie.File != NULL) ? Flags : (Flags | MF_DISABLED | MF_GRAYED)),ID_STOP_MOVIE,"Stop Movie","","&Stop Movie"); 
+
+	// HISTORY //
+
+	for(i = 0; i < MAX_RECENT_MOVIES; i++)
+	{
+		if (strcmp(Recent_Movie[i], ""))
+		{
+			char tmp1[1024];
+			Get_Name_From_Path(Recent_Movie[i], Str_Tmp);
+			strcpy(tmp1, Str_Tmp);
+			// & is an escape sequence in windows menu names, so replace & with &&
+			int len = strlen(tmp1);
+			for(int j = 0; j < len && len < 1023; j++)
+				if(tmp1[j] == '&')
+					memmove(tmp1+j+1, tmp1+j, strlen(tmp1+j)+1), ++len, ++j;
+
+			MENU_L(MoviesHistory, i, Flags,
+				ID_TOOLS_OPENRECENTMOVIE0 + i, tmp1, "", tmp1);
+		}
+		else break;
+	}
+
  	//Upth-Add - Menu Movies_Tracks
 	i = 0;
 	MENU_L(Movies_Tracks,i++,Flags,ID_MOVIE_CHANGETRACK_ALL,"All Players","\tCtrl-Shift-0","&All Players"); //Modif

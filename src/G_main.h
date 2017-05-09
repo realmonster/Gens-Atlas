@@ -23,6 +23,7 @@ extern HWND VDPRamHWnd;
 extern HWND VDPSpritesHWnd;
 extern HWND GameGenieHWnd;
 extern HMENU Gens_Menu;
+extern HMENU Context_Menu;
 
 extern int Paused;
 extern int Net_Play;
