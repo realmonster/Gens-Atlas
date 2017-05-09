@@ -119,7 +119,7 @@ int Change_File_S(char *Dest, char *Dir, char *Titre, char *Filter, char *Ext, H
 	ofn.lpstrInitialDir = Dir;
 	ofn.lpstrTitle = Titre;
 	ofn.lpstrDefExt = Ext;
-	ofn.Flags = OFN_PATHMUSTEXIST | OFN_HIDEREADONLY;
+	ofn.Flags = OFN_PATHMUSTEXIST | OFN_HIDEREADONLY | OFN_ENABLESIZING;
 
 	if (GetSaveFileName(&ofn)) return 1;
 
@@ -151,7 +151,7 @@ int Change_File_L(char *Dest, char *Dir, char *Titre, char *Filter, char *Ext, H
 	ofn.lpstrInitialDir = Dir;
 	ofn.lpstrTitle = Titre;
 	ofn.lpstrDefExt = Ext;
-	ofn.Flags = OFN_FILEMUSTEXIST | OFN_HIDEREADONLY;
+	ofn.Flags = OFN_FILEMUSTEXIST | OFN_HIDEREADONLY | OFN_ENABLESIZING;
 
 	if (GetOpenFileName(&ofn)) return 1;
 
@@ -180,7 +180,7 @@ int Change_Dir(char *Dest, char *Dir, char *Titre, char *Filter, char *Ext, HWND
 	ofn.lpstrInitialDir = Dir;
 	ofn.lpstrTitle = Titre;
 	ofn.lpstrDefExt = Ext;
-	ofn.Flags = OFN_HIDEREADONLY;
+	ofn.Flags = OFN_HIDEREADONLY | OFN_ENABLESIZING;
 
 	if (GetSaveFileName(&ofn))
 	{
@@ -2785,7 +2785,7 @@ int Save_As_Config(HWND hWnd)
 	ofn.nFilterIndex = 1;
 	ofn.lpstrInitialDir = Gens_Path;
 	ofn.lpstrDefExt = "cfg";
-	ofn.Flags = OFN_PATHMUSTEXIST | OFN_HIDEREADONLY;
+	ofn.Flags = OFN_PATHMUSTEXIST | OFN_HIDEREADONLY | OFN_ENABLESIZING;
 
 	if(GetSaveFileName(&ofn))
 	{
@@ -3238,7 +3238,7 @@ int Load_As_Config(HWND hWnd, void *Game_Active)
 	ofn.nFilterIndex = 1;
 	ofn.lpstrInitialDir = Gens_Path;
 	ofn.lpstrDefExt = "cfg";
-	ofn.Flags = OFN_FILEMUSTEXIST | OFN_HIDEREADONLY;
+	ofn.Flags = OFN_FILEMUSTEXIST | OFN_HIDEREADONLY | OFN_ENABLESIZING;
 
 	if(GetOpenFileName(&ofn))
 	{
