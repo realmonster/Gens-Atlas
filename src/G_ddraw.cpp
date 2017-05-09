@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <math.h>
+#include "guidraw.h"
 #include "G_ddraw.h"
 #include "G_dsound.h"
 #include "G_Input.h"
@@ -59,6 +60,13 @@ int (*Update_Frame)();
 int (*Update_Frame_Fast)();
 
 int Correct_256_Aspect_Ratio = 1;
+
+// debug string is drawn in _DEBUG
+// list variables by comma and specify the string format
+#define DEBUG_VARIABLES NULL
+static char Debug_Format[1024] = "";
+static int Debug_xPos = 0;
+static int Debug_yPos = 0;
 
 // if you have to debug something in fullscreen mode
 // but the fullscreen lock prevents you from seeing the debugger
@@ -841,6 +849,11 @@ void DrawInformationOnTheScreen()
 		}
 		Print_Text(Info_String, strlen(Info_String), 10, 210, FPS_Style);
 	}
+#ifdef _DEBUG
+	char str[1024];
+	sprintf(str, Debug_Format, DEBUG_VARIABLES);
+	PutText2(str,Debug_xPos,Debug_yPos);
+#endif
 }
 
 int Flip(HWND hWnd)
