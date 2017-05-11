@@ -1369,9 +1369,12 @@ void Update_RAM_Search() //keeps RAM values up to date in the search and watch w
 	{
 		Update_RAM_Watch();
 	}
-	if (HexEditorHWnd)
+	if (!HexEditors.empty())
 	{
-		HexUpdateDialog();
+		for (UINT i = 0; i < HexEditors.size(); i++)
+		{
+			HexUpdateDialog(HexEditors[i]);
+		}
 	}
 	if (VDPRamHWnd)
 	{

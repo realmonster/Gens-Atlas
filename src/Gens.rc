@@ -7,7 +7,8 @@
 //
 // Generated from the TEXTINCLUDE 2 resource.
 //
-#include "afxres.h"
+#include "afxres.h"
+
 /////////////////////////////////////////////////////////////////////////////
 #undef APSTUDIO_READONLY_SYMBOLS
 
@@ -72,6 +73,29 @@ BEGIN
 END
 
 
+IDD_SYMBOL_NAME DIALOGEX 0, 0, 195, 126
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Symbolic Name"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,46,105,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,103,105,50,14
+    EDITTEXT        IDC_SYMB_NAME,47,65,140,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_SYMB_ADDRESS_REL,47,18,61,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_SYMB_ADDRESS_ABS,47,36,61,14,ES_AUTOHSCROLL
+    COMBOBOX        IDC_SYMB_REGION,47,84,69,113,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    GROUPBOX        "Address",IDC_STATIC,7,7,109,51,BS_CENTER
+    GROUPBOX        "Data Size",IDC_STATIC,124,7,62,51,BS_CENTER
+    CONTROL         "1 byte",IDC_1_BYTE,"Button",BS_AUTORADIOBUTTON | BS_LEFT,137,20,40,10
+    CONTROL         "2 bytes",IDC_2_BYTES,"Button",BS_AUTORADIOBUTTON | BS_LEFT,137,30,40,10
+    CONTROL         "4 bytes",IDC_4_BYTES,"Button",BS_AUTORADIOBUTTON | BS_LEFT,137,40,40,10
+    LTEXT           "Relative:",IDC_STATIC,14,21,31,8
+    LTEXT           "Absolute:",IDC_STATIC,14,39,31,8
+    LTEXT           "Region:",IDC_STATIC,15,87,25,8
+    LTEXT           "Name:",IDC_STATIC,15,68,23,8
+    PUSHBUTTON      "Detect",IDC_SYMB_DETECT,127,84,50,14
+END
+
 /////////////////////////////////////////////////////////////////////////////
 //
 // DESIGNINFO
@@ -94,6 +118,14 @@ BEGIN
         RIGHTMARGIN, 254
         TOPMARGIN, 7
         BOTTOMMARGIN, 243
+    END
+
+    IDD_SYMBOL_NAME, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 186
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 119
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -959,13 +991,44 @@ HEXEDITOR_MENU MENU
 BEGIN
     POPUP "&Edit"
     BEGIN
-        MENUITEM "Copy &Numbers",               IDC_C_HEX_COPY_NUMS
-        MENUITEM "Copy &Characters",            IDC_C_HEX_COPY_CHARS
-        MENUITEM "RAM &Dump",                   IDC_C_HEX_DUMP
+        POPUP "Copy\tCtrl+C"
+        BEGIN
+            MENUITEM "Numbers",                     IDC_C_HEX_COPY_NUMS
+            MENUITEM "Characters",                  IDC_C_HEX_COPY_CHARS
+            MENUITEM "Address",                     IDC_C_HEX_COPY_ADDRSESS
+        END
+        POPUP "Paste\tCtrl+V"
+        BEGIN
+            MENUITEM "To Numbers",                  IDC_C_HEX_PASTE_NUMS
+            MENUITEM "To Characters",               IDC_C_HEX_PASTE_CHARS
+        END
+        MENUITEM "Freeze",                      ID_EDIT_FREEZE
+        MENUITEM SEPARATOR
+        MENUITEM "&Dump to file",               IDC_C_HEX_DUMP
+    END
+    POPUP "Add"
+    BEGIN
+        MENUITEM "Symbolic Name",               ID_ADD_SYMBOLICNAME
+        POPUP "68K Breakpoint"
+        BEGIN
+            MENUITEM "Read",                        ID_68KBREAKPOINT_READ
+            MENUITEM "Write",                       ID_68KBREAKPOINT_WRITE
+            MENUITEM "PC",                          ID_68KBREAKPOINT_PC
+        END
+        POPUP "Z80 Breakpoint"
+        BEGIN
+            MENUITEM "Read",                        ID_Z80BREAKPOINT_READ
+            MENUITEM "Write",                       ID_Z80BREAKPOINT_WRITE
+            MENUITEM "PC",                          ID_Z80BREAKPOINT_PC
+        END
+    END
+    POPUP "GoTo"
+    BEGIN
+        MENUITEM "&GoTo\tCtrl+G",               IDC_C_HEX_GOTO
+        MENUITEM "Autodetect Region",           ID_GOTO_AUTODETECTREGION
     END
     POPUP "&View"
     BEGIN
-        MENUITEM "&GoTo",                       IDC_C_HEX_GOTO
         MENUITEM "Show &Lines",                 IDC_C_HEX_LINES
         MENUITEM "Show &Text Area",             IDC_C_HEX_TEXT
     END
@@ -1001,7 +1064,8 @@ END
 //
 // Generated from the TEXTINCLUDE 3 resource.
 //
-
+
+
 /////////////////////////////////////////////////////////////////////////////
 #endif    // not APSTUDIO_INVOKED
 

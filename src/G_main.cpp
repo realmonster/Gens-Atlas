@@ -1989,8 +1989,6 @@ void Handle_Gens_Messages()
 			continue;
 		if (GameGenieHWnd && IsDialogMessage(GameGenieHWnd, &msg))
 			continue;
-		if (HexEditorHWnd && IsDialogMessage(HexEditorHWnd, &msg))
-			continue;
 		if (RamWatchHWnd && IsDialogMessage(RamWatchHWnd, &msg))
 		{
 			if(msg.message == WM_KEYDOWN) // send keydown messages to the dialog (for accelerators, and also needed for the Alt key to work)
@@ -2016,6 +2014,13 @@ void Handle_Gens_Messages()
 		if (VolControlHWnd && IsDialogMessage(VolControlHWnd, &msg))
 			continue;
 		bool docontinue = false;
+		for (UINT i = 0; i < HexEditors.size(); i++) {
+			if (HexEditors[i]->Hwnd && IsDialogMessage(HexEditors[i]->Hwnd, &msg)) {
+				if(msg.message == WM_CHAR)
+					SendMessage(HexEditors[i]->Hwnd, msg.message, msg.wParam, msg.lParam);
+				docontinue = true;
+			}
+		}
 		for(unsigned int i=0; i<LuaScriptHWnds.size(); i++)
 			if (IsDialogMessage(LuaScriptHWnds[i], &msg))
 				docontinue = true;
@@ -2852,8 +2857,9 @@ long PASCAL WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					SendMessage(M68kDW.HWnd, WM_CLOSE, 0, 0);
 				if(z80DW.HWnd!=NULL)
 					SendMessage(z80DW.HWnd, WM_CLOSE, 0, 0);
-				if (HexEditorHWnd)
-					HexDestroyDialog();
+				if (HexEditors.size() > 0)
+					for (int i = (int) HexEditors.size() - 1; i >= 0; i--)
+						HexDestroyDialog(HexEditors[i]);
 				Gens_Running = 0;
 			}
 			return 0;
@@ -3237,7 +3243,7 @@ long PASCAL WinProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 						SetForegroundWindow(RamWatchHWnd);
 					break;
 					
-				case ID_RAM_DUMP:
+				case ID_HEX_EDITOR:
 					HexCreateDialog();
 					break;
 
@@ -5557,7 +5563,7 @@ HMENU Build_Main_Menu(void)
 	InsertMenu(TAS_Tools, i++, MF_SEPARATOR, NULL, NULL);
 	MENU_L(TAS_Tools,i++,Flags,ID_RAM_WATCH,"RAM Watch","","RAM &Watch");   //Modif U.
 	MENU_L(TAS_Tools,i++,Flags,ID_RAM_SEARCH,"RAM Search","","&RAM Search"); //Modif N.
-	MENU_L(TAS_Tools,i++,Flags,ID_RAM_DUMP,"RAM Dump","","RAM Dump");
+	MENU_L(TAS_Tools,i++,Flags,ID_HEX_EDITOR,"Hex Editor","","Hex Editor");
 	MENU_L(TAS_Tools,i++,Flags,ID_VDP_RAM,"VDP RAM","","VDP RAM");
 	MENU_L(TAS_Tools,i++,Flags,ID_VDP_SPRITES,"VDP Sprites","","VDP Sprites");
 	MENU_L(TAS_Tools,i++,Flags,ID_M68K_DEBUG_WINDOW,"M68k Debug","","M68k Debug");

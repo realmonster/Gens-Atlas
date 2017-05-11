@@ -2447,17 +2447,17 @@ int Save_Config(char *File_Name)
 	wsprintf(Str_Tmp, "%d", SSH2_Speed);
 	WritePrivateProfileString("CPU", "Slave SH2 Speed", Str_Tmp, Conf_File);
 
-	wsprintf(Str_Tmp, "%d", Hex.DialogPosX);
+	wsprintf(Str_Tmp, "%d", HexCommon.DialogPosX);
 	WritePrivateProfileString("Tools", "Hex Editor X Position", Str_Tmp, Conf_File);
-	wsprintf(Str_Tmp, "%d", Hex.DialogPosY);
+	wsprintf(Str_Tmp, "%d", HexCommon.DialogPosY);
 	WritePrivateProfileString("Tools", "Hex Editor Y Position", Str_Tmp, Conf_File);
-	wsprintf(Str_Tmp, "%d", Hex.OffsetVisibleFirst);
+	wsprintf(Str_Tmp, "%d", HexCommon.OffsetVisibleFirst);
 	WritePrivateProfileString("Tools", "Hex Editor First Offset", Str_Tmp, Conf_File);
-	wsprintf(Str_Tmp, "%d", Hex.OffsetVisibleTotal);
+	wsprintf(Str_Tmp, "%d", HexCommon.OffsetVisibleTotal);
 	WritePrivateProfileString("Tools", "Hex Editor Total Offset", Str_Tmp, Conf_File);
-	wsprintf(Str_Tmp, "%d", Hex.TextView);
+	wsprintf(Str_Tmp, "%d", HexCommon.TextView);
 	WritePrivateProfileString("Tools", "Hex Editor Text View", Str_Tmp, Conf_File);
-	wsprintf(Str_Tmp, "%d", DrawLines);
+	wsprintf(Str_Tmp, "%d", HexCommon.DrawLines);
 	WritePrivateProfileString("Tools", "Hex Editor Draw Lines", Str_Tmp, Conf_File);
 
 	wsprintf(Str_Tmp, "%d", Fast_Blur & 1);
@@ -2980,12 +2980,12 @@ int Load_Config(char *File_Name, void *Game_Active)
 
 	Check_Country_Order();
 
-	Hex.DialogPosX = GetPrivateProfileInt("Tools", "Hex Editor X Position", 0, Conf_File);
-	Hex.DialogPosY = GetPrivateProfileInt("Tools", "Hex Editor Y Position", 0, Conf_File);
-	Hex.OffsetVisibleFirst = GetPrivateProfileInt("Tools", "Hex Editor First Offset", 0, Conf_File);
-	Hex.OffsetVisibleTotal = GetPrivateProfileInt("Tools", "Hex Editor Total Offset", 16, Conf_File);
-	Hex.TextView = !!GetPrivateProfileInt("Tools", "Hex Editor Text View", 1, Conf_File);
-	DrawLines = !!GetPrivateProfileInt("Tools", "Hex Editor Draw Lines", 1, Conf_File);
+	HexCommon.DialogPosX = GetPrivateProfileInt("Tools", "Hex Editor X Position", 0, Conf_File);
+	HexCommon.DialogPosY = GetPrivateProfileInt("Tools", "Hex Editor Y Position", 0, Conf_File);
+	HexCommon.OffsetVisibleFirst = GetPrivateProfileInt("Tools", "Hex Editor First Offset", 0, Conf_File);
+	HexCommon.OffsetVisibleTotal = GetPrivateProfileInt("Tools", "Hex Editor Total Offset", 16, Conf_File);
+	HexCommon.TextView = !!GetPrivateProfileInt("Tools", "Hex Editor Text View", 1, Conf_File);
+	HexCommon.DrawLines = !!GetPrivateProfileInt("Tools", "Hex Editor Draw Lines", 1, Conf_File);
 
 	Fast_Blur = GetPrivateProfileInt("Options", "Fast Blur", 0, Conf_File);
 	Show_FPS = GetPrivateProfileInt("Options", "FPS", 0, Conf_File);

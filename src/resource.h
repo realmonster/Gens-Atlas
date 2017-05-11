@@ -52,6 +52,7 @@
 #define IDD_EDIT_BREAK                  156
 #define IDD_VDPRAM                      157
 #define IDD_VDP_SPRITES                 158
+#define IDD_SYMBOL_NAME                 160
 #define IDC_STATIC_WARNING_BITMAP       1000
 #define IDC_JOYINFO1                    1001
 #define IDC_JOYINFO2                    1002
@@ -62,7 +63,9 @@
 #define IDC_GGINFO4                     1011
 #define IDC_EDIT1                       1014
 #define IDC_LIST1                       1015
+#define IDC_SYMB_ADDRESS_REL            1015
 #define ID_GGREMOVE                     1016
+#define IDC_SYMB_ADDRESS_ABS            1016
 #define ID_GGADD                        1017
 #define ID_GGDEACTIVATE                 1018
 #define ID_GGAPPLY                      1019
@@ -315,6 +318,18 @@
 #define IDC_NOTIFY_SUBSERVIENT          1350
 #define ID_FILE_SAVEWINDOWPOSITION      3000
 #define RAMMENU_FILE_SAVEWINDOW         3001
+#define ID_EDIT_ADD                     3002
+#define ID_ADD_SYMBOLICNAME             3003
+#define ID_ADD_68KBREAKPOINT            3004
+#define ID_ADD_Z80BREAKPOINT            3005
+#define ID_EDIT_FREEZE                  3006
+#define ID_68KBREAKPOINT_READ           3007
+#define ID_68KBREAKPOINT_WRITE          3008
+#define ID_68KBREAKPOINT_PC             3009
+#define ID_Z80BREAKPOINT_READ           3010
+#define ID_Z80BREAKPOINT_WRITE          3011
+#define ID_Z80BREAKPOINT_PC             3012
+#define ID_GOTO_AUTODETECTREGION        3013
 #define ID_MOVIE_CHANGETRACK_ALL        19000
 #define ID_MOVIE_CHANGETRACK_1          19001
 #define ID_MOVIE_CHANGETRACK_2          19002
@@ -522,7 +537,7 @@
 #define ID_RAM_SEARCH                   40522
 #define ID_RAM_WATCH                    40523
 #define ID_VOLUME_CONTROL               40524
-#define ID_RAM_DUMP                     40525
+#define ID_HEX_EDITOR                   40525
 #define ID_M68K_DEBUG_WINDOW            40526
 #define ID_Z80_DEBUG_WINDOW             40527
 #define ID_VDP_RAM                      40528
@@ -639,7 +654,12 @@
 #define IDC_C_HEX_COPY_NUMS             42195
 #define IDC_C_HEX_COPY_CHARS            42196
 #define IDC_C_HEX_COPY_AUTO             42197
-#define IDD_HEX_GOTO_EDIT               42200
+#define IDC_C_HEX_COPY_ADDRSESS         42198
+#define IDC_C_HEX_PASTE_NUMS            42200
+#define IDC_C_HEX_PASTE_CHARS           42201
+#define IDC_C_HEX_PASTE_AUTO            42202
+#define IDC_C_HEX_REGION                42300
+#define IDD_HEX_GOTO_EDIT               42400
 #define IDC_PROMPT_TEXT                 43000
 #define IDC_PROMPT_TEXT2                43001
 #define IDC_PROMPT_EDIT                 43005
@@ -702,14 +722,18 @@
 #define IDC_SPRITES_PREVIEW2            50027
 #define IDC_SPRITES_DUMP                50028
 #define ID_VDP_SPRITES                  50029
+#define IDC_RADIO3                      50033
+#define IDC_SYMB_REGION                 50034
+#define IDC_SYMB_NAME                   -15501
+#define IDC_SYMB_DETECT                 -15500
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        159
-#define _APS_NEXT_COMMAND_VALUE         3002
-#define _APS_NEXT_CONTROL_VALUE         50030
+#define _APS_NEXT_RESOURCE_VALUE        161
+#define _APS_NEXT_COMMAND_VALUE         3014
+#define _APS_NEXT_CONTROL_VALUE         50037
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif
