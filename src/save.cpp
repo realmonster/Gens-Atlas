@@ -2411,8 +2411,8 @@ int Save_Config(char *File_Name)
 	WritePrivateProfileString("Sound", "YM2612 Improvement", Str_Tmp, Conf_File);
 	wsprintf(Str_Tmp, "%d", DAC_Improv & 1);
 	WritePrivateProfileString("Sound", "DAC Improvement", Str_Tmp, Conf_File);
-	wsprintf(Str_Tmp, "%d", PSG_Improv & 1);
-	WritePrivateProfileString("Sound", "PSG Improvement", Str_Tmp, Conf_File);
+//	wsprintf(Str_Tmp, "%d", PSG_Improv & 1);
+//	WritePrivateProfileString("Sound", "PSG Improvement", Str_Tmp, Conf_File);
 
 	wsprintf(Str_Tmp,"%d",MastVol);
 	WritePrivateProfileString("Sound", "Master Volume", Str_Tmp, Conf_File);
@@ -2955,7 +2955,7 @@ int Load_Config(char *File_Name, void *Game_Active)
 
 	YM2612_Improv = GetPrivateProfileInt("Sound", "YM2612 Improvement", 0, Conf_File); // Modif N
 	DAC_Improv = GetPrivateProfileInt("Sound", "DAC Improvement", 0, Conf_File); // Modif N
-	PSG_Improv = GetPrivateProfileInt("Sound", "PSG Improvement", 0, Conf_File); // Modif N
+//	PSG_Improv = GetPrivateProfileInt("Sound", "PSG Improvement", 0, Conf_File); // Modif N
 	MastVol = (GetPrivateProfileInt("Sound", "Master Volume", 128, Conf_File) & 0x1FF);
 	YM2612Vol = (GetPrivateProfileInt("Sound", "YM2612 Volume", 256, Conf_File) & 0x1FF);
 	DACVol = (GetPrivateProfileInt("Sound", "DAC Volume", 256, Conf_File) & 0x1FF);
