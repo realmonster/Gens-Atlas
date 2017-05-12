@@ -176,6 +176,7 @@ void z80DebugWindow::Update()
 		r.top=SelectedLine*18;
 		r.bottom=(SelectedLine+1)*18-1;
 		DrawFocusRect(MemDC,&r);
+		SelectedPC=disrows[SelectedLine];
 	}
 	sprintf(buff,              "AF =%.4X BC =%.4X DE =%.4X\n",
 		M_Z80.AF.w.AF&0xFFFF, M_Z80.BC.w.BC&0xFFFF, M_Z80.DE.w.DE&0xFFFF);

@@ -1065,6 +1065,7 @@ DebugWindow::DebugWindow()
 	IdaSync=false;
 	StepOver=-1;
 	SelectedLine=-1;
+	SelectedPC=-1;
 	Title="Debug";
 	whyBreakpoint = "";
 }
@@ -1157,14 +1158,17 @@ void DebugWindow::UpdateBreak(int n)
 	SendDlgItemMessage(HWnd,IDC_BREAK_LIST,LB_DELETESTRING,(WPARAM)n,NULL);
 	char buff[20];
 	::Breakpoint &b=Breakpoints[n];
-	sprintf(buff,"%c %06X-%06X %c%c%c",(b.enabled?'x':' '),b.start,b.end,(b.type&1?'p':' '),(b.type&2?'r':' '),(b.type&4?'w':' '));
+	if (b.start == b.end)
+		sprintf(buff,"%c %06X %c%c%c",(b.enabled?'x':' '),b.start,(b.type&1?'p':' '),(b.type&2?'r':' '),(b.type&4?'w':' '));
+	else
+		sprintf(buff,"%c %06X-%06X %c%c%c",(b.enabled?'x':' '),b.start,b.end,(b.type&1?'p':' '),(b.type&2?'r':' '),(b.type&4?'w':' '));
 	SendDlgItemMessage(HWnd,IDC_BREAK_LIST,LB_INSERTSTRING,(WPARAM)n,(LPARAM)buff);
 	SendDlgItemMessage(HWnd,IDC_BREAK_LIST,LB_SETCURSEL,(WPARAM)n,NULL);
 }
 
 void DebugWindow::Breakpoint(int pc)
 {
-	Update_RAM_Watch();
+	Update_RAM_Search();
 	Clear_Sound_Buffer();
 	Put_Info((char*)(whyBreakpoint.c_str()));
 	ShowAddress(pc);
@@ -1292,6 +1296,7 @@ LRESULT CALLBACK DebugWindow::Proc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM l
 			switch(id)
 			{
 			case IDC_STEP_INTO:
+				Update_RAM_Search();
 				StepInto=true;
 			case IDC_RUN:
 				if (DummyHWnd)
@@ -1299,6 +1304,7 @@ LRESULT CALLBACK DebugWindow::Proc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM l
 				break;
 
 			case IDC_STEP_OVER:
+				Update_RAM_Search();
 				DoStepOver();
 				PostMessage(HWnd,WM_DEBUG_DUMMY_EXIT,NULL,NULL);
 				break;
@@ -1309,16 +1315,37 @@ LRESULT CALLBACK DebugWindow::Proc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM l
 				::Breakpoint &b=Breakpoints[n];
 				memset(&b,0,sizeof(::Breakpoint));
 				SendDlgItemMessage(HWnd,IDC_BREAK_LIST,LB_INSERTSTRING,(WPARAM)-1,(LPARAM)"");
-				UpdateBreak(n);
+				// init me
+				b.enabled=true;
+				if (SelectedPC!=-1)
+				{
+					b.start=b.end=SelectedPC;
+					b.type=1;
+					SelectedPC=-1;
+				}
+				else
+					b.type=0x80;
 				SendDlgItemMessage(HWnd,IDC_BREAK_LIST,LB_SETCURSEL,(WPARAM)n,NULL);
-			}	//WARNING WITHOUT BREAK
+			}	//WARNING: WITHOUT BREAK!
 
 			case IDC_EDIT_BREAK: {
 				int n=SendDlgItemMessage(HWnd,IDC_BREAK_LIST,LB_GETCURSEL,NULL,NULL);
 				if (n!=LB_ERR)
 				{
+					Clear_Sound_Buffer();
 					DialogBoxParam(NULL,MAKEINTRESOURCE(IDD_EDIT_BREAK),HWnd,(DLGPROC)EditBreakProc,(LPARAM)&Breakpoints[n]);
-					UpdateBreak(n);
+					::Breakpoint &b=Breakpoints[n];
+					if (b.type==0x80)
+					{
+						SendDlgItemMessage(HWnd,IDC_BREAK_LIST,LB_DELETESTRING,n,NULL);
+						Breakpoints.erase(Breakpoints.begin()+n);
+						if (n<Breakpoints.size())
+							SendDlgItemMessage(HWnd,IDC_BREAK_LIST,LB_SETCURSEL,(WPARAM)n,NULL);
+						else if (Breakpoints.size())
+							SendDlgItemMessage(HWnd,IDC_BREAK_LIST,LB_SETCURSEL,(WPARAM)n-1,NULL);
+					}
+					else
+						UpdateBreak(n);
 				}
 			}	break;
 
@@ -1405,6 +1432,17 @@ LRESULT CALLBACK DebugWindow::Proc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM l
 			if (GetFocus()!=hDlg)
 				hDlg=(HWND)1;*/
 		}	break;
+
+		case WM_LBUTTONDBLCLK:
+		{
+			short x=LOWORD(lParam);
+			short y=HIWORD(lParam);
+			SelectedLine=(y-5)/18;
+			Update();
+			SetForegroundWindow(hDlg);
+			Proc(HWnd, WM_COMMAND, IDC_ADD_BREAK, 0);
+		}	break;
+
 
 		case WM_VSCROLL:
 		{
@@ -1534,13 +1572,18 @@ LRESULT CALLBACK EditBreakProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 
 			b=(Breakpoint *)lParam;
 			char buff[15];
-			sprintf(buff,"%06X-%06X",b->start,b->end);
+			if (b->type == 0x80)
+				sprintf(buff,"");
+			else if (b->start == b->end)
+				sprintf(buff,"%06X",b->start);
+			else
+				sprintf(buff,"%06X-%06X",b->start,b->end);
 			SetDlgItemText(hDlg,IDC_EDIT_RANGE,buff);
 			CheckDlgButton(hDlg,IDC_ENABLE,(b->enabled?BST_CHECKED:BST_UNCHECKED));
- 			CheckDlgButton(hDlg,IDC_PC,(b->type&1?BST_CHECKED:BST_UNCHECKED));
-			CheckDlgButton(hDlg,IDC_READ,(b->type&2?BST_CHECKED:BST_UNCHECKED));
-			CheckDlgButton(hDlg,IDC_WRITE,(b->type&4?BST_CHECKED:BST_UNCHECKED));
-			CheckDlgButton(hDlg,IDC_FORBID,(b->type&8?BST_CHECKED:BST_UNCHECKED));
+ 			CheckDlgButton(hDlg,IDC_PC,    (b->type&1 ?BST_CHECKED:BST_UNCHECKED));
+			CheckDlgButton(hDlg,IDC_READ,  (b->type&2 ?BST_CHECKED:BST_UNCHECKED));
+			CheckDlgButton(hDlg,IDC_WRITE, (b->type&4 ?BST_CHECKED:BST_UNCHECKED));
+			CheckDlgButton(hDlg,IDC_FORBID,(b->type&8 ?BST_CHECKED:BST_UNCHECKED));
 			
 			if (Full_Screen)
 			{
@@ -1579,15 +1622,20 @@ LRESULT CALLBACK EditBreakProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 			{
 				case IDOK: {
 					char buff[15];
-					GetDlgItemText(hDlg,IDC_EDIT_RANGE,buff,sizeof(buff));
+					if (!GetDlgItemText(hDlg,IDC_EDIT_RANGE,buff,sizeof(buff)) ||
+						!sscanf(buff,"%x-%x",&(b->start),&(b->end)))
+						break;
+					else
+						b->type ^= 0x80;
 					if (sscanf(buff,"%x-%x",&(b->start),&(b->end))==1)
-						b->end=b->start;
-					if (b->end<b->start)
-						b->end=b->start;
-					b->enabled=(IsDlgButtonChecked(hDlg,IDC_ENABLE)==BST_CHECKED);
-					b->type=(IsDlgButtonChecked(hDlg,IDC_PC)==BST_CHECKED)+
-						((IsDlgButtonChecked(hDlg,IDC_READ)==BST_CHECKED)*2)+
-						((IsDlgButtonChecked(hDlg,IDC_WRITE)==BST_CHECKED)*4)+
+						b->end = b->start;
+					if (b->end < b->start)
+						b->end = b->start;
+					b->enabled = (IsDlgButtonChecked(hDlg,IDC_ENABLE)==BST_CHECKED);
+					b->type =
+						 (IsDlgButtonChecked(hDlg,IDC_PC    )==BST_CHECKED)   +
+						((IsDlgButtonChecked(hDlg,IDC_READ  )==BST_CHECKED)*2)+
+						((IsDlgButtonChecked(hDlg,IDC_WRITE )==BST_CHECKED)*4)+
 						((IsDlgButtonChecked(hDlg,IDC_FORBID)==BST_CHECKED)*8);
 					EndDialog(hDlg,true);
 				}	break;

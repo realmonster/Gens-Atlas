@@ -153,7 +153,7 @@ void M68kDebugWindow::Update()
 			sprintf( buff, "%-33s",
 				M68KDisasm2( Next_Word_T, Next_Long_T, Current_PC ) );
 			buff[7]=0;
-			strlwr(buff);
+			_strlwr(buff);
 			TextOut(MemDC,60,i*18,buff,strlen(buff));
 			SetTextColor(MemDC,0x000000);
 			TextOut(MemDC,130,i*18,buff+8,strlen(buff+8));
@@ -172,6 +172,7 @@ void M68kDebugWindow::Update()
 		r.top=SelectedLine*18;
 		r.bottom=(SelectedLine+1)*18-1;
 		DrawFocusRect(MemDC,&r);
+		SelectedPC=disrows[SelectedLine];
 	}
 	sprintf(buff,"A0: %08X  D0: %08X\n"
 		"A1: %08X  D1: %08X\n"
@@ -199,7 +200,7 @@ void M68kDebugWindow::Update()
 		,(main68k_context.sr & 0x01)?'C':'c');
 	SetWindowText(GetDlgItem(HWnd,IDC_STATIC1),buff);
 	SendDlgItemMessage(HWnd,IDC_CALL_STACK,LB_RESETCONTENT,NULL,NULL);
-	for (i=0;i<callstack.size();++i)
+	for (i=0;(uint32)i<callstack.size();++i)
 	{
 		sprintf(buff,"%08X",callstack[i]);
 		SendDlgItemMessage(HWnd,IDC_CALL_STACK,LB_INSERTSTRING,(WPARAM)(i?0:-1),(LPARAM)buff);

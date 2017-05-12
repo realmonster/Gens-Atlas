@@ -41,6 +41,7 @@ struct DebugWindow
 	bool IdaSync;
 	uint32 StepOver;
 	int SelectedLine;
+	int SelectedPC;
 
 	void Window();
 	void UpdateBreak(int n);
