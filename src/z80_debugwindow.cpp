@@ -200,7 +200,7 @@ void z80DebugWindow::Update()
 	sprintf(buff+strlen(buff), "Status=%.2X ILine=%.2X IVect=%.2X\n", M_Z80.Status & 0xFF, M_Z80.IntLine, M_Z80.IntVect);
 	sprintf(buff+strlen(buff), "Bank68K=%.8X State=%.2X\n", Bank_M68K, Z80_State);
 
-	SetWindowText(GetDlgItem(HWnd,IDC_STATIC1),buff);
+	SetWindowText(GetDlgItem(HWnd,IDC_DEBUG_REGS), buff);
 	SendDlgItemMessage(HWnd,IDC_CALL_STACK,LB_RESETCONTENT,NULL,NULL);
 	for (i=0;i<callstack.size();++i)
 	{

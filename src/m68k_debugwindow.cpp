@@ -198,7 +198,7 @@ void M68kDebugWindow::Update()
 		,(main68k_context.sr & 0x04)?'Z':'z'
 		,(main68k_context.sr & 0x02)?'V':'v'
 		,(main68k_context.sr & 0x01)?'C':'c');
-	SetWindowText(GetDlgItem(HWnd,IDC_STATIC1),buff);
+	SetWindowText(GetDlgItem(HWnd,IDC_DEBUG_REGS), buff);
 	SendDlgItemMessage(HWnd,IDC_CALL_STACK,LB_RESETCONTENT,NULL,NULL);
 	for (i=0;(uint32)i<callstack.size();++i)
 	{

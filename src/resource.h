@@ -697,7 +697,7 @@
 #define ID_LUA_OPENRECENTSCRIPTMAX      44299
 #define IDC_SCROLLBAR1                  50001
 #define IDC_STEP_INTO                   50002
-#define IDC_STATIC1                     50003
+#define IDC_DEBUG_REGS                  50003
 #define IDC_BUTTON3                     50004
 #define IDC_SET_BREAK                   50005
 #define IDC_ADD_BREAK                   50006

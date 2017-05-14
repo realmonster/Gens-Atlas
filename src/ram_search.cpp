@@ -878,7 +878,7 @@ bool ReadCellAtVDPAddress(unsigned short address, unsigned char *cell) {
 		scroll_end = scroll_begin + 4;
 
 	tableA_begin = (VDP_Reg.Pat_ScrA_Adr & 0x38) << 10;
-	tableB_begin = (VDP_Reg.Pat_ScrB_Adr & 0x3) << 13;
+	tableB_begin = (VDP_Reg.Pat_ScrB_Adr & 0x7) << 13;
 	if (VDP_Reg.Set4 & 0x81)
 	{
 		tableW_begin = (VDP_Reg.Pat_Win_Adr & 0x3C) << 10;
@@ -943,7 +943,7 @@ bool WriteCellToVDPAddress(unsigned short address, unsigned char *cell) {
 		scroll_end = scroll_begin + 4;
 
 	tableA_begin = (VDP_Reg.Pat_ScrA_Adr & 0x38) << 10;
-	tableB_begin = (VDP_Reg.Pat_ScrB_Adr & 0x3) << 13;
+	tableB_begin = (VDP_Reg.Pat_ScrB_Adr & 0x7) << 13;
 	if (VDP_Reg.Set4 & 0x81)
 	{
 		tableW_begin = (VDP_Reg.Pat_Win_Adr & 0x3C) << 10;
