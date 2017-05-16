@@ -657,10 +657,10 @@ DEFINE_LUA_FUNCTION(input_popup, "message[,type=\"yesno\"[,icon=\"question\"]]")
 	return doPopup(L, "yesno", "question");
 }
 
-const char *prompt_str = new char[];
-const char *prompt_default = new char[];
+const char *prompt_str;
+const char *prompt_default;
 int prompt_maxlength;
-char *prompt_result = new char[];
+char *prompt_result;
 
 LRESULT CALLBACK LuaPromptProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
@@ -2151,7 +2151,7 @@ registerPointerMap m68kPointerMap [] = {
 	RPM_ENTRY("d5", main68k_context.dreg[5])
 	RPM_ENTRY("d6", main68k_context.dreg[6])
 	RPM_ENTRY("d7", main68k_context.dreg[7])
-	RPM_ENTRY("pc", main68k_context.pc)
+	RPM_ENTRY("pc", M68kDW.last_pc)
 	RPM_ENTRY("sr", main68k_context.sr)
 	{}
 };
@@ -3489,19 +3489,7 @@ DEFINE_LUA_FUNCTION(gens_loadrom, "filename")
 
 DEFINE_LUA_FUNCTION(gens_hardreset, "")
 {
-	if(!(Game))
-		return 0;
-	
-	if (Genesis_Started)
-		Reset_Genesis();
-	else if (_32X_Started)
-		Reset_32X();
-	else if (SegaCD_Started)
-		Reset_SegaCD();
-
-	FrameCount=0;
-	LagCount = 0;
-	LagCountPersistent = 0;
+	SendMessage(HWnd, WM_COMMAND, ID_CPU_RESET, 0);
 	return 0;
 }
 
