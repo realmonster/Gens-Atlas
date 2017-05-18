@@ -3,7 +3,7 @@
 
 #define DIRECTDRAW_VERSION         0x0500
 
-//#include <ddraw.h>
+#include <ddraw.h>
 #include <Windows.h>
 #include <time.h>
 #include "Mem_M68k.h"

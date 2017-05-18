@@ -24,6 +24,13 @@
 #include "drawutil.h"
 #include "luascript.h"
 
+LPDIRECTDRAW lpDD_Init;
+LPDIRECTDRAW4 lpDD;
+LPDIRECTDRAWSURFACE4 lpDDS_Primary;
+LPDIRECTDRAWSURFACE4 lpDDS_Flip;
+LPDIRECTDRAWSURFACE4 lpDDS_Back;
+LPDIRECTDRAWSURFACE4 lpDDS_Blit;
+LPDIRECTDRAWCLIPPER lpDDC_Clipper;
 HMODULE Render_DLL = NULL;
 
 clock_t Last_Time = 0, New_Time = 0;
@@ -226,6 +233,7 @@ void Put_Info(char *Message, int Duration)
 int Init_Fail(HWND hwnd, char *err)
 {
 	Render_Delete();
+//	End_DDraw();
 	MessageBox(hwnd, err, "Can't load render plugin ...", MB_OK);
 
 	return 0;
@@ -236,27 +244,20 @@ typedef LPCSTR (*Render_Render_Func)(HWND hWnd, RECT *src, RECT *dst);
 typedef LPCSTR (*Render_Void_Func)();
 
 int Render_Init(HWND hWnd)
+//int Init_DDraw(HWND hWnd)
 {
 	int Rend;
 
 	int oldBits32 = Bits32;
 
 	Render_Delete();
+	//End_DDraw();
 
 	if (Full_Screen) Rend = Render_FS;
 	else Rend = Render_W;
 
 	if (Res_X < (320 << (int) (Render_FS > 0))) Res_X = 320 << (int) (Render_FS > 0); //Upth-Add - Set a floor for the resolution
-    if (Res_Y < (240 << (int) (Render_FS > 0))) Res_Y = 240 << (int) (Render_FS > 0); //Upth-Add - 320x240 for single, 640x480 for double and other
-
-	//if (Full_Screen && Render_FS >= 2) //Upth-Modif - Since software blits don't stretch right, we'll use 640x480 for those render modes
-	// Modif N. removed the forced 640x480 case because it caused "windowed fullscreen mode" to be ignored and because I fixed the fullscreen software blit stretching
-
-	if (Full_Screen && !(FS_No_Res_Change))
-	{
-		//if (FAILED(lpDD->SetDisplayMode(Res_X, Res_Y, 16, 0, 0)))
-		//	return Init_Fail(hWnd, "Error with lpDD->SetDisplayMode !");
-	}
+	if (Res_Y < (240 << (int) (Render_FS > 0))) Res_Y = 240 << (int) (Render_FS > 0); //Upth-Add - 320x240 for single, 640x480 for double and other
 
 	Render_DLL = LoadLibrary(Genesis_Render_Plugin);
 	if (Render_DLL != NULL)
@@ -269,20 +270,182 @@ int Render_Init(HWND hWnd)
 			{
 				Init_Fail(hWnd, (char*)res);
 				Render_DLL = NULL;
-				return 0;
+				//return 0;
 			}
+			else
+				return 1;
 		}
 		else
 		{
 			Init_Fail(hWnd, "Can't find Render_Init entry point");
 			Render_DLL = NULL;
-			return 0;
+			//return 0;
 		}
 	}
 	else
 	{
-		Init_Fail(hWnd, "Can't load Render plugin");
-		return 0;
+		if (Genesis_Render_Plugin[0])
+			Init_Fail(hWnd, "Can't load Render plugin");
+		//return 0;
+	}
+
+	if (!Render_DLL)
+	{
+	HRESULT rval;
+	DDSURFACEDESC2 ddsd;
+	if (FAILED(DirectDrawCreate(NULL, &lpDD_Init, NULL)))
+		return Init_Fail(hWnd, "Error with DirectDrawCreate !");
+
+	if (FAILED(lpDD_Init->QueryInterface(IID_IDirectDraw4, (LPVOID *) &lpDD)))
+		return Init_Fail(hWnd, "Error with QueryInterface !\nUpgrade your DirectX version.");
+
+	lpDD_Init->Release();
+	lpDD_Init = NULL;
+
+	if (!(Mode_555 & 2))
+	{
+		memset(&ddsd, 0, sizeof(ddsd));
+		ddsd.dwSize = sizeof(ddsd);
+
+		lpDD->GetDisplayMode(&ddsd);
+
+		if (ddsd.ddpfPixelFormat.dwGBitMask == 0x03E0) Mode_555 = 1;
+		else Mode_555 = 0;
+
+		Recalculate_Palettes();
+	}
+
+#ifdef DISABLE_EXCLUSIVE_FULLSCREEN_LOCK
+	FS_VSync = 0;
+	rval = lpDD->SetCooperativeLevel(hWnd, DDSCL_NORMAL);
+#else
+	if (Full_Screen)
+		rval = lpDD->SetCooperativeLevel(hWnd, DDSCL_EXCLUSIVE | DDSCL_FULLSCREEN);
+	else
+		rval = lpDD->SetCooperativeLevel(hWnd, DDSCL_NORMAL);
+#endif
+
+	if (FAILED(rval))
+		return Init_Fail(hWnd, "Error with lpDD->SetCooperativeLevel !");
+
+	//if (Full_Screen && Render_FS >= 2) //Upth-Modif - Since software blits don't stretch right, we'll use 640x480 for those render modes
+	// Modif N. removed the forced 640x480 case because it caused "windowed fullscreen mode" to be ignored and because I fixed the fullscreen software blit stretching
+
+	if (Full_Screen && !(FS_No_Res_Change))
+	{
+		if (FAILED(lpDD->SetDisplayMode(Res_X, Res_Y, 16, 0, 0)))
+			return Init_Fail(hWnd, "Error with lpDD->SetDisplayMode !");
+	}
+
+	memset(&ddsd, 0, sizeof(ddsd));
+	ddsd.dwSize = sizeof(ddsd);
+
+	if ((Full_Screen) && (FS_VSync))
+	{
+		ddsd.dwFlags = DDSD_CAPS | DDSD_BACKBUFFERCOUNT;
+		ddsd.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE | DDSCAPS_FLIP | DDSCAPS_COMPLEX;
+		ddsd.dwBackBufferCount = 1;
+	}
+	else
+	{
+		ddsd.dwFlags = DDSD_CAPS;
+		ddsd.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE;
+	}
+
+	if (FAILED(lpDD->CreateSurface(&ddsd, &lpDDS_Primary, NULL )))
+		return Init_Fail(hWnd, "Error with lpDD->CreateSurface !");
+
+	if (Full_Screen)
+	{
+		if (FS_VSync)
+		{
+			ddsd.ddsCaps.dwCaps = DDSCAPS_BACKBUFFER;
+
+			if (FAILED(lpDDS_Primary->GetAttachedSurface(&ddsd.ddsCaps, &lpDDS_Flip)))
+				return Init_Fail(hWnd, "Error with lpDDPrimary->GetAttachedSurface !");
+
+			lpDDS_Blit = lpDDS_Flip;
+		}
+		else lpDDS_Blit = lpDDS_Primary;
+	}
+	else
+	{
+		if (FAILED(lpDD->CreateClipper(0, &lpDDC_Clipper, NULL )))
+			return Init_Fail(hWnd, "Error with lpDD->CreateClipper !");
+
+		if (FAILED(lpDDC_Clipper->SetHWnd(0, hWnd)))
+			return Init_Fail(hWnd, "Error with lpDDC_Clipper->SetHWnd !");
+
+		if (FAILED(lpDDS_Primary->SetClipper(lpDDC_Clipper)))
+			return Init_Fail(hWnd, "Error with lpDDS_Primary->SetClipper !");
+	}
+
+	memset(&ddsd, 0, sizeof(ddsd));
+	ddsd.dwSize = sizeof(ddsd);
+	ddsd.dwFlags = DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH;
+
+	if (Rend < 2)
+	{
+		ddsd.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN | DDSCAPS_SYSTEMMEMORY;
+		ddsd.dwWidth = 336;
+		ddsd.dwHeight = 240;
+	}
+	else
+	{
+		ddsd.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN | DDSCAPS_VIDEOMEMORY;
+		ddsd.dwWidth = 672; //Upth-Modif - was 640, but for single mode the value was 336, not 320.
+		ddsd.dwHeight = 480;
+	}
+
+	if (FAILED(lpDD->CreateSurface(&ddsd, &lpDDS_Back, NULL)))
+		return Init_Fail(hWnd, "Error with lpDD->CreateSurface !");
+
+	if (Rend < 2)
+	{
+		memset(&ddsd, 0, sizeof(ddsd));
+		ddsd.dwSize = sizeof(ddsd);
+
+		if (FAILED(lpDDS_Back->GetSurfaceDesc(&ddsd)))
+			return Init_Fail(hWnd, "Error with lpDD_Back->GetSurfaceDesc !");
+
+		ddsd.dwFlags = DDSD_WIDTH | DDSD_HEIGHT | DDSD_PITCH | DDSD_LPSURFACE | DDSD_PIXELFORMAT;
+		ddsd.dwWidth = 336;
+		ddsd.dwHeight = 240;
+		if (ddsd.ddpfPixelFormat.dwRGBBitCount > 16)
+		{
+			ddsd.lpSurface = &MD_Screen32[0];
+			ddsd.lPitch = 336 * 4;
+		}
+		else
+		{
+			ddsd.lpSurface = &MD_Screen[0];
+			ddsd.lPitch = 336 * 2;
+		}
+
+		if (FAILED(lpDDS_Back->SetSurfaceDesc(&ddsd, 0)))
+			return Init_Fail(hWnd, "Error with lpDD_Back->SetSurfaceDesc !");
+	}
+
+	// make sure Bits32 is correct (which it could easily not be at this point)
+	{
+		memset(&ddsd, 0, sizeof(ddsd));
+		ddsd.dwSize = sizeof(ddsd);
+
+		if (FAILED(lpDDS_Back->GetSurfaceDesc(&ddsd)))
+			return Init_Fail(hWnd, "Error with lpDDS_Blit->GetSurfaceDesc !");
+
+		Bits32 = (ddsd.ddpfPixelFormat.dwRGBBitCount > 16) ? 1 : 0;
+
+		// also prevent the colors from sometimes being messed up for 1 frame if we changed color depth
+
+		if(Bits32 && !oldBits32)
+			for(int i = 0 ; i < 336 * 240 ; i++)
+				MD_Screen32[i] = DrawUtil::Pix16To32(MD_Screen[i]);
+
+		if(!Bits32 && oldBits32)
+			for(int i = 0 ; i < 336 * 240 ; i++)
+				MD_Screen[i] = DrawUtil::Pix32To16(MD_Screen32[i]);
+	}
 	}
 
 	// make sure the render mode is still valid (changing options in a certain order can make it invalid at this point)
@@ -324,6 +487,39 @@ void Render_Delete()
 		FreeLibrary(Render_DLL);
 		Render_DLL = NULL;
 	}
+
+	if (lpDDC_Clipper)
+	{
+		lpDDC_Clipper->Release();
+		lpDDC_Clipper = NULL;
+	}
+
+	if (lpDDS_Back)
+	{
+		lpDDS_Back->Release();
+		lpDDS_Back = NULL;
+	}
+
+	if (lpDDS_Flip)
+	{
+		lpDDS_Flip->Release();
+		lpDDS_Flip = NULL;
+	}
+
+	if (lpDDS_Primary)
+	{
+		lpDDS_Primary->Release();
+		lpDDS_Primary = NULL;
+	}
+
+	if (lpDD)
+	{
+		lpDD->SetCooperativeLevel(HWnd, DDSCL_NORMAL);
+		lpDD->Release();
+		lpDD = NULL;
+	}
+
+	lpDDS_Blit = NULL;
 }
 
 void Render_Reload(HWND hWnd)
@@ -335,15 +531,18 @@ void Render_Reload(HWND hWnd)
 
 HRESULT RestoreGraphics(HWND hWnd)
 {
-	/*HRESULT rval1 = lpDDS_Primary->Restore();
+	if (lpDDS_Primary)
+	{
+	HRESULT rval1 = lpDDS_Primary->Restore();
 	HRESULT rval2 = lpDDS_Back->Restore();
 
 	// Modif N. -- fixes lost surface handling when the color depth has changed
 	if (rval1 == DDERR_WRONGMODE || rval2 == DDERR_WRONGMODE)
-		return Init_DDraw(hWnd) ? DD_OK : DDERR_GENERIC;
+		return Render_Init(hWnd) ? DD_OK : DDERR_GENERIC;
 
-	return SUCCEEDED(rval2) ? rval1 : rval2;*/
-	return 0;
+	return SUCCEEDED(rval2) ? rval1 : rval2;
+	}
+	return 1;
 }
 
 
@@ -356,6 +555,46 @@ int Clear_Primary_Screen(HWND hWnd)
 	//HDC dc = GetDC(hWnd);
 	//SwapBuffers(dc);
 	//ReleaseDC(hWnd,dc);
+
+	if(!lpDD)
+		return 0; // bail if directdraw hasn't been initialized yet or if we're still in the middle of initializing it
+
+	DDSURFACEDESC2 ddsd;
+	DDBLTFX ddbltfx;
+	RECT RD;
+	POINT p;
+
+	memset(&ddsd, 0, sizeof(ddsd));
+	ddsd.dwSize = sizeof(ddsd);
+
+	memset(&ddbltfx, 0, sizeof(ddbltfx));
+	ddbltfx.dwSize = sizeof(ddbltfx);
+	ddbltfx.dwFillColor = 0;
+
+	if (Full_Screen)
+	{
+		if (FS_VSync)
+		{
+			lpDDS_Flip->Blt(NULL, NULL, NULL, DDBLT_WAIT | DDBLT_COLORFILL, &ddbltfx);
+			//lpDDS_Primary->Blt(NULL, NULL, NULL, DDBLT_WAIT | DDBLT_COLORFILL, &ddbltfx);
+		}
+		else lpDDS_Primary->Blt(NULL, NULL, NULL, DDBLT_WAIT | DDBLT_COLORFILL, &ddbltfx);
+	}
+	else
+	{
+		p.x = p.y = 0;
+		GetClientRect(hWnd, &RD);
+		ClientToScreen(hWnd, &p);
+
+		RD.left = p.x;
+		RD.top = p.y;
+		RD.right += p.x;
+		RD.bottom += p.y;
+
+		if (RD.top < RD.bottom)
+			lpDDS_Primary->Blt(&RD, NULL, NULL, DDBLT_WAIT | DDBLT_COLORFILL, &ddbltfx);
+	}
+
 	return 1;
 }
 
@@ -367,17 +606,32 @@ int Clear_Back_Screen(HWND hWnd)
 
 	//glClear(GL_COLOR_BUFFER_BIT);
 
+	if(!lpDD)
+		return 0; // bail if directdraw hasn't been initialized yet or if we're still in the middle of initializing it
+
+	DDSURFACEDESC2 ddsd;
+	DDBLTFX ddbltfx;
+
+	memset(&ddsd, 0, sizeof(ddsd));
+	ddsd.dwSize = sizeof(ddsd);
+
+	memset(&ddbltfx, 0, sizeof(ddbltfx));
+	ddbltfx.dwSize = sizeof(ddbltfx);
+	ddbltfx.dwFillColor = 0;
+
+	lpDDS_Back->Blt(NULL, NULL, NULL, DDBLT_WAIT | DDBLT_COLORFILL, &ddbltfx);
+
 	return 1;
 }
 
 
 void Restore_Primary(void)
 {
-	/*if (lpDD && Full_Screen && FS_VSync)
+	if (lpDD && Full_Screen && FS_VSync)
 	{
 		while (lpDDS_Primary->GetFlipStatus(DDGFS_ISFLIPDONE) == DDERR_SURFACEBUSY);
 		lpDD->FlipToGDISurface();
-	}*/
+	}
 }
 
 // Calculate Draw Area
@@ -858,10 +1112,9 @@ void DrawInformationOnTheScreen()
 
 int Flip(HWND hWnd)
 {
-	//if(!GLRC)
-	//	return 0; // bail if directdraw hasn't been initialized yet or if we're still in the middle of initializing it
-
-	HRESULT rval = 1;
+	HRESULT rval = DD_OK;
+	DDSURFACEDESC2 ddsd;
+	ddsd.dwSize = sizeof(ddsd);
 	RECT RectDest, RectSrc;
 	int bpp = Bits32 ? 4 : 2; // Modif N. -- added: bytes per pixel
 
@@ -878,31 +1131,35 @@ int Flip(HWND hWnd)
 		{
 			render(hWnd, &RectSrc, &RectDest);
 		}
+		return 1;
 	}
 
-	/*	int Src_X = (RectSrc->right - RectSrc->left);
-	int Src_Y = (RectSrc->bottom - RectSrc->top);
+	if(!lpDD)
+		return 0; // bail if directdraw hasn't been initialized yet or if we're still in the middle of initializing it
+
+	int Src_X = (RectSrc.right - RectSrc.left);
+	int Src_Y = (RectSrc.bottom - RectSrc.top);
 
 	int Clr_Cmp_Val  = IS_FULL_X_RESOLUTION ? 4 : 8;
 		Clr_Cmp_Val |= IS_FULL_Y_RESOLUTION ? 16 : 32;
 
 	if (Flag_Clr_Scr & 0x100) // need clear second buffer
 	{
-		//Clear_Primary_Screen(hWnd);
+		Clear_Primary_Screen(hWnd);
 		Flag_Clr_Scr ^= 0x300; // already cleared
 	}
 
 	if ((Flag_Clr_Scr & 0xFF) != (Clr_Cmp_Val & 0xFF))
 	{
-		/*if (!Full_Screen && W_VSync)
+		if (!Full_Screen && W_VSync)
 			lpDD->WaitForVerticalBlank(DDWAITVB_BLOCKBEGIN, 0);
 		if (!(Flag_Clr_Scr & 0x200))
 			Clear_Primary_Screen(hWnd); // already cleared
 		if ((!Full_Screen && Render_W >= 2)
 		 || ( Full_Screen && Render_FS >= 2))
 			Clear_Back_Screen(hWnd);
-		*/
-	/*	if (Full_Screen && FS_VSync)
+
+		if (Full_Screen && FS_VSync)
 			Flag_Clr_Scr = Clr_Cmp_Val | 0x100; // need to clear second buffer
 		else
 			Flag_Clr_Scr = Clr_Cmp_Val;
@@ -910,8 +1167,7 @@ int Flip(HWND hWnd)
 
 	Flag_Clr_Scr &= 0x1FF; // remove "already cleared"
 
-	*/
-	/*if (Full_Screen)
+	if (Full_Screen)
 	{
 		if (Render_FS < 2)
 		{
@@ -994,17 +1250,17 @@ int Flip(HWND hWnd)
 				while (lpDDS_Primary->GetBltStatus(DDGBS_ISBLTDONE) == DDERR_WASSTILLDRAWING);
 				/*int vb;
 				lpDD->GetVerticalBlankStatus(&vb);
-				if (!vb)*/// lpDD->WaitForVerticalBlank(DDWAITVB_BLOCKBEGIN, 0);
-//			}
+				if (!vb)*/ lpDD->WaitForVerticalBlank(DDWAITVB_BLOCKBEGIN, 0);
+			}
 
-		//	rval = lpDDS_Primary->Blt(&RectDest, lpDDS_Back, &RectSrc, DDBLT_WAIT | DDBLT_ASYNC, NULL);
+			rval = lpDDS_Primary->Blt(&RectDest, lpDDS_Back, &RectSrc, DDBLT_WAIT | DDBLT_ASYNC, NULL);
 //			rval = lpDDS_Primary->Blt(&RectDest, lpDDS_Back, &RectSrc, NULL, NULL);
-//		}
-//	}
+		}
+	}
 
-//cleanup_flip:
-//	if (rval == DDERR_SURFACELOST)
-//		rval = RestoreGraphics(hWnd);
+cleanup_flip:
+	if (rval == DDERR_SURFACELOST)
+		rval = RestoreGraphics(hWnd);
 
 	return 1;
 }

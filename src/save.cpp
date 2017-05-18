@@ -2822,7 +2822,7 @@ int Load_Config(char *File_Name, void *Game_Active)
 	GetPrivateProfileString("General", "Watch path", Rom_Dir, &Watch_Dir[0], 1024, Conf_File);
 	GetPrivateProfileString("General", "Lua path", Rom_Dir, &Lua_Dir[0], 1024, Conf_File);
 
-	GetPrivateProfileString("General", "Render Plugin", ".\\Sonic3-Atlas.dll", &Genesis_Render_Plugin[0], 1024, Conf_File);
+	GetPrivateProfileString("General", "Render Plugin", "", &Genesis_Render_Plugin[0], 1024, Conf_File);
 
 	GetPrivateProfileString("General", "Genesis Bios", Rom_Dir, &Genesis_Bios[0], 1024, Conf_File);
 
