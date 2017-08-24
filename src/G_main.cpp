@@ -65,6 +65,7 @@ extern "C" void Read_To_68K_Space(int adr);
 #include "tracer.h"
 bool trace_map=0;
 bool hook_trace=0;
+bool trace_indent=false;
 unsigned char trace_limit=0;
 
 #define WM_KNUX WM_USER + 3
@@ -545,6 +546,19 @@ int Change_Trace_Limit()
 
 	char message [256];
 	sprintf(message, "Trace Limit %sabled", trace_limit?"en":"dis");
+	MESSAGE_L(message, message)
+
+	return 1;
+}
+
+int Change_Trace_Indent()
+{
+	trace_indent = !trace_indent;
+
+	Build_Main_Menu();
+
+	char message [256];
+	sprintf(message, "Trace Indentation %sabled", trace_indent?"en":"dis");
 	MESSAGE_L(message, message)
 
 	return 1;
@@ -4566,6 +4580,10 @@ dialogAgain: //Nitsuja added this
 					Change_Trace_Limit();
 					return 0;
 
+				case ID_CHANGE_TRACE_INDENT:
+					Change_Trace_Indent();
+					return 0;
+
 				case ID_EMULATION_PAUSED:
 					if (Debug)
 					{
@@ -5514,6 +5532,7 @@ HMENU Build_Main_Menu(void)
 	MENU_L(Tools_Trace, i++, Flags | (trace_map ? MF_CHECKED : MF_UNCHECKED), ID_CHANGE_TRACE, "Log Instructions", "", "&Trace");
 	MENU_L(Tools_Trace, i++, Flags | (hook_trace ? MF_CHECKED : MF_UNCHECKED), ID_CHANGE_HOOK, "Log RAM access", "", "&Hook RAM");
 	MENU_L(Tools_Trace, i++, Flags | (trace_limit ? MF_CHECKED : MF_UNCHECKED),	ID_CHANGE_TRACE_LIMIT, "Trace Limit", "", "Trace Spam Filter");
+	MENU_L(Tools_Trace, i++, Flags | (trace_indent ? MF_CHECKED : MF_UNCHECKED), ID_CHANGE_TRACE_INDENT, "Trace Indentation", "", "Trace Indentation");
 
 	i = 0;
 	MENU_L(Lua_Script,i++,Flags,IDC_NEW_LUA_SCRIPT,"New Lua Script Window...","","&New Lua Script Window...");
